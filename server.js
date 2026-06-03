@@ -33,7 +33,7 @@ app.post('/api/data', (req, res) => {
 
 
 
-app.get('/callback', async (req, res) => {
+app.get('/callback', async(req, res) => {
     const code = req.query.code
     const error = req.query.error
 
@@ -48,8 +48,7 @@ app.get('/callback', async (req, res) => {
                 grant_type: 'authorization_code',
                 code,
                 redirect_uri: REDIRECT_URI
-            }),
-            {
+            }), {
                 headers: {
                     'Authorization': 'Basic ' + auth,
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -63,13 +62,13 @@ app.get('/callback', async (req, res) => {
 
         res.redirect('/')
     } catch (err) {
-        console.error('Échange token échoué :', err.response?.data || err.message)
+        console.error('Échange token échoué :', err.response ? .data || err.message)
         res.status(500).send('Échange du token échoué')
     }
 })
 
 // Statut connexion + nom utilisateur
-app.get('/api/me', async (req, res) => {
+app.get('/api/me', async(req, res) => {
     // Pas de token, ou expiré → pas connecté
     if (!spotifyToken || Date.now() >= tokenExpiry) {
         return res.json({ connected: false })
@@ -85,7 +84,8 @@ app.get('/api/me', async (req, res) => {
             id: resp.data.id
         })
     } catch (err) {
-        console.error('Récup profil échouée :', err.response?.data || err.message)
+        console.error('Récup profil échouée :', err.response ? .data || err.message)
+
         res.json({ connected: false })
     }
 })
