@@ -35,7 +35,7 @@ app.get('/login', (req, res) => {
     const params = new URLSearchParams({
         client_id: "4aa3940d8b844dc6b9c3ec360d57ebe6",
         response_type: 'code',
-        redirect_uri: 'http://localhost:3000/callback',
+        redirect_uri: 'http://localhost:4102/callback',
         scope: 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
     })
 
@@ -44,5 +44,5 @@ app.get('/login', (req, res) => {
 
 // Démarrer le serveur
 app.listen(3000, () => {
-    console.log('Serveur lancé sur http://localhost:3000')
+    console.log('Serveur lancé sur http://localhost:4102')
 })
