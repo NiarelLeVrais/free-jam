@@ -43,6 +43,7 @@ app.get('/login', (req, res) => {
 })
 
 // Démarrer le serveur
-app.listen(3000, () => {
-    console.log('Serveur lancé sur http://localhost:4102')
+const PORT = process.env.PORT || 4102
+app.listen(PORT, () => {
+    console.log(`Serveur lancé sur http://localhost:${PORT}`)
 })
