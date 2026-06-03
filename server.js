@@ -24,6 +24,7 @@ app.post('/api/data', (req, res) => {
 })
 
 
+
 app.get('/callback', (req, res) => {
     // Spotify renvoie un code ici
     // Tu l'échanges contre un token et tu le stockes
@@ -35,7 +36,7 @@ app.get('/login', (req, res) => {
     const params = new URLSearchParams({
         client_id: "4aa3940d8b844dc6b9c3ec360d57ebe6",
         response_type: 'code',
-        redirect_uri: 'http://localhost:4102/callback',
+        redirect_uri: '*https://free-jam.atlastheone.xyz/callback',
         scope: 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
     })
 
