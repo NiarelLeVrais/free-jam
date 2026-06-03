@@ -1,9 +1,17 @@
+require('dotenv').config()
 const express = require('express')
+const axios = require('axios')
 const app = express()
 
-// Une variable globale suffit pour commencer
+// Config Spotify (depuis .env)
+const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
+const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
+const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI
+
+// Tokens stockés en mémoire (suffit pour commencer)
+let spotifyToken = null
+let refreshToken = null
 let tokenExpiry = null
-let spotifyTokenid = "4aa3940d8b844dc6b9c3ec360d57ebe6"
 
 // Permet de lire le JSON dans les requêtes
 app.use(express.json())
@@ -25,18 +33,46 @@ app.post('/api/data', (req, res) => {
 
 
 
-app.get('/callback', (req, res) => {
-    // Spotify renvoie un code ici
-    // Tu l'échanges contre un token et tu le stockes
-    spotifyToken = tokenRécupéréDepuisSpotify
-    res.redirect('/')
+app.get('/callback', async (req, res) => {
+    const code = req.query.code
+    const error = req.query.error
+
+    if (error) return res.status(400).send('Spotify a refusé : ' + error)
+    if (!code) return res.status(400).send('Pas de code dans le callback')
+
+    try {
+        const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')
+        const resp = await axios.post(
+            'https://accounts.spotify.com/api/token',
+            new URLSearchParams({
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: REDIRECT_URI
+            }),
+            {
+                headers: {
+                    'Authorization': 'Basic ' + auth,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }
+        )
+
+        spotifyToken = resp.data.access_token
+        refreshToken = resp.data.refresh_token
+        tokenExpiry = Date.now() + resp.data.expires_in * 1000
+
+        res.redirect('/')
+    } catch (err) {
+        console.error('Échange token échoué :', err.response?.data || err.message)
+        res.status(500).send('Échange du token échoué')
+    }
 })
 
 app.get('/login', (req, res) => {
     const params = new URLSearchParams({
-        client_id: "4aa3940d8b844dc6b9c3ec360d57ebe6",
+        client_id: CLIENT_ID,
         response_type: 'code',
-        redirect_uri: 'https://free-jam.atlastheone.xyz/callback',
+        redirect_uri: REDIRECT_URI,
         scope: 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
     })
 
