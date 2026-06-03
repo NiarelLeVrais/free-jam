@@ -62,7 +62,7 @@ app.get('/callback', async(req, res) => {
 
         res.redirect('/')
     } catch (err) {
-        console.error('Échange token échoué :', err.response ? .data || err.message)
+        console.error('Échange token échoué :', (err.response && err.response.data) || err.message)
         res.status(500).send('Échange du token échoué')
     }
 })
@@ -84,7 +84,7 @@ app.get('/api/me', async(req, res) => {
             id: resp.data.id
         })
     } catch (err) {
-        console.error('Récup profil échouée :', err.response ? .data || err.message)
+        console.error('Récup profil échouée :', (err.response && err.response.data) || err.message)
 
         res.json({ connected: false })
     }
