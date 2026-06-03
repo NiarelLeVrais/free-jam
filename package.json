@@ -1,0 +1,26 @@
+{
+  "name": "freejam",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000f\u0000r\u0000e\u0000e\u0000-\u0000j\u0000a\u0000m\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NiarelLeVrais/free-jam.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/NiarelLeVrais/free-jam/issues"
+  },
+  "homepage": "https://github.com/NiarelLeVrais/free-jam#readme",
+  "dependencies": {
+    "axios": "^1.17.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
