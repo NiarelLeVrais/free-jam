@@ -68,12 +68,34 @@ app.get('/callback', async (req, res) => {
     }
 })
 
+// Statut connexion + nom utilisateur
+app.get('/api/me', async (req, res) => {
+    // Pas de token, ou expiré → pas connecté
+    if (!spotifyToken || Date.now() >= tokenExpiry) {
+        return res.json({ connected: false })
+    }
+
+    try {
+        const resp = await axios.get('https://api.spotify.com/v1/me', {
+            headers: { 'Authorization': 'Bearer ' + spotifyToken }
+        })
+        res.json({
+            connected: true,
+            name: resp.data.display_name,
+            id: resp.data.id
+        })
+    } catch (err) {
+        console.error('Récup profil échouée :', err.response?.data || err.message)
+        res.json({ connected: false })
+    }
+})
+
 app.get('/login', (req, res) => {
     const params = new URLSearchParams({
         client_id: CLIENT_ID,
         response_type: 'code',
         redirect_uri: REDIRECT_URI,
-        scope: 'user-read-playback-state user-modify-playback-state user-read-currently-playing'
+        scope: 'user-read-private user-read-playback-state user-modify-playback-state user-read-currently-playing'
     })
 
     res.redirect('https://accounts.spotify.com/authorize?' + params)

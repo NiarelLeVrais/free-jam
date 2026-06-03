@@ -1,3 +1,34 @@
-<h1>FREE JAM</h1>
+<!DOCTYPE html>
+<html lang="en">
 
-<a href="/login">Se connecter avec Spotify</a>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FREE JAM</title>
+</head>
+
+<body>
+
+    <h1>FREE JAM</h1>
+
+    <a id="login" href="/login">Se connecter avec Spotify</a>
+    <div id="name">Name :</div>
+
+    <script>
+        async function checkAuth() {
+            const res = await fetch('/api/me')
+            const data = await res.json()
+
+            if (data.connected) {
+                document.getElementById('name').textContent = 'Name : ' + data.name
+                document.getElementById('login').style.display = 'none'
+            } else {
+                document.getElementById('name').textContent = 'Non connecté'
+                document.getElementById('login').style.display = 'inline'
+            }
+        }
+        checkAuth()
+    </script>
+</body>
+
+</html>
