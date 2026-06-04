@@ -237,13 +237,51 @@ function enterJamRoom(state) {
     jamPoll = setInterval(refreshJam, 6000)
 }
 
+// Angle de rotation courant (0..360) lu depuis la matrice calculée
+function currentRotationDeg(el) {
+    const tr = getComputedStyle(el).transform
+    if (!tr || tr === 'none') return 0
+    const m = tr.match(/matrix\(([^)]+)\)/)
+    if (!m) return 0
+    const v = m[1].split(',').map(parseFloat)
+    const deg = Math.atan2(v[1], v[0]) * 180 / Math.PI
+    return (deg % 360 + 360) % 360
+}
+
+// Stoppe le spin en finissant le tour en sens horaire jusqu'à la position de repos
+// (base = 360°≡0, ou hover = 180°), sans snap.
+function stopRefreshSpin(btn) {
+    const cur = currentRotationDeg(btn)        // angle actuel, lu pendant l'anim
+    const hovered = btn.matches(':hover')
+    // prochaine position de repos en horaire (≥ cur) : hover→180/540, base→360
+    const target = hovered ? (cur <= 180 ? 180 : 540) : 360
+    btn.classList.remove('spinning')           // coupe le keyframe
+    if (target - cur < 0.5) {                  // déjà au repos → rien à animer
+        btn.style.transition = ''
+        btn.style.transform = ''
+        return
+    }
+    btn.style.transition = 'none'
+    btn.style.transform = 'rotate(' + cur + 'deg)'
+    void btn.offsetWidth                       // reflow → fige l'angle courant
+    btn.style.transition = 'transform 0.4s ease-out'
+    btn.style.transform = 'rotate(' + target + 'deg)'  // delta = target - cur, horaire
+    btn.addEventListener('transitionend', function te() {
+        btn.removeEventListener('transitionend', te)
+        btn.style.transition = ''
+        btn.style.transform = ''               // CSS reprend (hover 180 ou base 0), sans saut
+    })
+}
+
 async function refreshJam() {
     const btn = $('jamRefresh')
+    btn.style.transition = ''                  // repart propre (clics rapides)
+    btn.style.transform = ''
     btn.classList.add('spinning')
     try {
         await Promise.all([renderJamCurrent(), renderJamQueue()])
     } finally {
-        btn.classList.remove('spinning')
+        stopRefreshSpin(btn)
     }
 }
 

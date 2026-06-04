@@ -539,6 +539,9 @@ h3 {
     border-radius: 50%;
     width: 36px;
     height: 36px;
+    flex: 0 0 auto;          /* pas de shrink flex → reste rond, pas ovale */
+    box-sizing: border-box;
+    padding: 0;
     cursor: pointer;
     background: var(--bg-elev);
     color: var(--text);
@@ -621,30 +624,6 @@ h3 {
 .shape.triDown { clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .shape.diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 .shape.pent { clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%); }
-
-/* Cacahuète = 2 cercles qui se chevauchent */
-.shape.peanut {
-    width: 86px;
-    height: 130px;
-    background: transparent !important;
-    position: relative;
-}
-.shape.peanut::before,
-.shape.peanut::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    width: 86px;
-    height: 86px;
-    border-radius: 50%;
-    background: inherit;
-}
-.shape.peanut::before { top: 0; }
-.shape.peanut::after { bottom: 0; }
-/* peanut hérite la couleur via variable inline */
-.shape.peanut { background: transparent; }
-.shape.peanut::before,
-.shape.peanut::after { background: var(--peanut-color, var(--magenta)); }
 
 /* Étoile/burst : clip-path généré en JS (var --star-clip) */
 .shape.star { clip-path: var(--star-clip); }
