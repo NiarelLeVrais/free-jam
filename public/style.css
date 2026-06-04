@@ -114,3 +114,39 @@ body {
     flex-direction: row;
     align-items: center;
 }
+
+/* Barre de recherche */
+.searchBar {
+    display: flex;
+    gap: 8px;
+    width: 320px;
+}
+
+.searchBar input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: #181818;
+    color: #fff;
+}
+
+#searchResults {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 320px;
+}
+
+/* Bouton + pour ajouter à la queue */
+.addBtn {
+    margin-left: auto; /* pousse le + à droite de la carte */
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    background: #1db954;
+    color: #fff;
+    font-weight: 700;
+}

@@ -79,4 +79,67 @@ listBut.addEventListener("click", function() {
     getQueu()
 })
 
+// --- Recherche + ajout à la queue ---
+
+async function searchTracks() {
+    const q = document.getElementById('searchInput').value
+    if (!q.trim()) return
+
+    const res = await fetch('/search?q=' + encodeURIComponent(q))
+    const data = await res.json()
+
+    const box = document.getElementById('searchResults')
+    box.innerHTML = ''
+
+    for (let i = 0; i < data.results.length; i++) {
+        const t = data.results[i]
+
+        const row = document.createElement('div')
+        row.className = 'songList'
+
+        const img = document.createElement('img')
+        img.src = t.image
+        img.width = 48
+
+        const info = document.createElement('div')
+        info.textContent = t.name + ' — ' + t.artists.join(', ')
+
+        const addBtn = document.createElement('button')
+        addBtn.textContent = '+'
+        addBtn.className = 'addBtn'
+        addBtn.addEventListener('click', function() {
+            addToQueue(t.uri, addBtn)
+        })
+
+        row.appendChild(img)
+        row.appendChild(info)
+        row.appendChild(addBtn)
+        box.appendChild(row)
+    }
+}
+
+async function addToQueue(uri, btn) {
+    const res = await fetch('/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uri })
+    })
+    const data = await res.json()
+
+    if (data.ok) {
+        btn.textContent = '✓' // feedback ajouté
+        getQueu() // rafraîchit la file
+    } else {
+        btn.textContent = '✗' // échec (pas de device actif ?)
+    }
+}
+
+const searchButton = document.getElementById('searchButton')
+searchButton.addEventListener('click', searchTracks)
+
+// Entrée clavier = lance la recherche
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') searchTracks()
+})
+
 //NEWS

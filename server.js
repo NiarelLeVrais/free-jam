@@ -179,6 +179,49 @@ app.get('/queue', async(req, res) => {
     }
 })
 
+// Recherche de musiques
+app.get('/search', async(req, res) => {
+    try {
+        const api = await ensureToken(req.session)
+        if (!api) return res.json({ connected: false })
+
+        const q = (req.query.q || '').trim()
+        if (!q) return res.json({ results: [] })
+
+        const data = await api.searchTracks(q, { limit: 10 })
+        const results = (data.body.tracks.items || []).map(track => ({
+            uri: track.uri, // identifiant Spotify, requis pour ajouter à la queue
+            name: track.name,
+            artists: track.artists.map(a => a.name),
+            album: track.album.name,
+            image: track.album.images[0] && track.album.images[0].url
+        }))
+
+        res.json({ results })
+    } catch (err) {
+        console.error('Recherche échouée :', err.body || err.message)
+        res.status(500).json({ error: 'Recherche échouée' })
+    }
+})
+
+// Ajout d'une musique à la queue
+app.post('/add', async(req, res) => {
+    try {
+        const api = await ensureToken(req.session)
+        if (!api) return res.json({ connected: false })
+
+        const uri = req.body.uri
+        if (!uri) return res.status(400).json({ error: 'uri manquant' })
+
+        await api.addToQueue(uri) // nécessite scope user-modify-playback-state + device actif
+        res.json({ ok: true })
+    } catch (err) {
+        console.error('Ajout queue échoué :', err.body || err.message)
+        // 404 = pas de device actif sur Spotify
+        res.status(500).json({ error: 'Ajout échoué (device actif ?)' })
+    }
+})
+
 // Démarrer le serveur
 const PORT = process.env.PORT || 4102
 app.listen(PORT, () => {
