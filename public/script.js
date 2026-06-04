@@ -116,8 +116,14 @@ function floodTransition(color, x, y, onCovered) {
         setTimeout(function() {
             // Phase 2 : trou transparent découpe la couleur → révèle la page
             cutter.classList.add('active') // démarre plein (trou = 0), même couleur
-            flood.classList.remove('active')
-            flood.style.opacity = 0 // cache le disque, le cutter prend le relais
+
+            // On cache le flood SEULEMENT une fois le cutter peint (évite le flash)
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    flood.classList.remove('active')
+                    flood.style.opacity = 0
+                })
+            })
 
             setTimeout(function() {
                 cutter.classList.remove('active')
@@ -136,6 +142,7 @@ function showView(id) {
     ['landing', 'jamView', 'appView'].forEach(function(v) {
         document.getElementById(v).classList.toggle('hidden', v !== id)
     })
+    buildSideShapes() // formes neuves à chaque page
 }
 
 // Bouton Spotify : flood lime puis redirection OAuth
@@ -166,7 +173,7 @@ document.getElementById('jamJoinBtn').addEventListener('click', function() {
 })
 
 // ===== Colonnes de formes Wrapped (côtés PC) =====
-;(function buildSideShapes() {
+function buildSideShapes() {
     const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'chevron', 'peanut', 'star']
     const COLORS = ['#f0524a', '#ff8ad8', '#ffa64d', '#6f6cf0', '#6fae6f', '#ff3d9a']
 
@@ -209,6 +216,7 @@ document.getElementById('jamJoinBtn').addEventListener('click', function() {
 
     const sides = document.querySelectorAll('.sideShapes')
     sides.forEach(function(side, sideIdx) {
+        side.innerHTML = '' // vide avant de regénérer (formes neuves à chaque page)
         const cols = parseInt(side.dataset.cols || '3', 10)
         for (let c = 0; c < cols; c++) {
             const dir = (c + sideIdx) % 2 === 0 ? 'up' : 'down' // alterne haut/bas
@@ -216,7 +224,9 @@ document.getElementById('jamJoinBtn').addEventListener('click', function() {
             side.appendChild(buildColumn(dir, dur))
         }
     })
-})()
+}
+
+buildSideShapes() // construction initiale
 
 // --- Recherche + ajout à la queue ---
 
