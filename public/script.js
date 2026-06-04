@@ -1,124 +1,231 @@
-async function curentSongPlayed() {
+// ===== Helpers =====
+function $(id) { return document.getElementById(id) }
 
-    const res = await fetch('/curent')
-    const data = await res.json()
+async function getJSON(url) {
+    const res = await fetch(url)
+    return res.json()
+}
 
-    const track = document.getElementById('track')
+async function postJSON(url, body) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined
+    })
+    return { status: res.status, data: await res.json().catch(function() { return {} }) }
+}
 
-    if (data.playing) {
-        track.style.display = 'flex'
-        document.getElementById('trackname').textContent = data.name
-        document.getElementById('trackimg').src = data.image
+let jamPoll = null // timer de rafraîchissement de la salle Jam
+
+// ===== Routing : quelle vue afficher ? =====
+async function routeView() {
+    const state = await getJSON('/jam/state')
+    if (state.inJam) {
+        enterJamRoom(state)
+        return
+    }
+    // Pas dans un Jam → connecté (home) ou landing
+    const me = await getJSON('/api/me')
+    if (me.connected) {
+        fillHome(me)
+        showView('appView')
     } else {
-        // Rien en lecture : feedback au lieu de clic muet
-        track.style.display = 'flex'
-        document.getElementById('trackname').textContent = 'Rien en lecture'
-        document.getElementById('trackimg').removeAttribute('src')
+        showView('landing')
     }
 }
 
-async function getQueu() {
-    const res = await fetch('/queue');
-    const data = await res.json();
-
-    if (!data.queue) return; // pas connecté / rien à afficher
-
-    const list = document.getElementById('file');
-
-    list.innerHTML = '' // vide avant de remplir, sinon doublons à chaque clic
-
-    for (let i = 0; i < data.queue.length; i++) {
-
-        let nextSong = document.createElement("div")
-        let nextSong_Name = document.createElement("div")
-        let nextSong_Img = document.createElement("img")
-
-        nextSong.className = 'songList';
-        nextSong_Name.textContent = data.queue[i].name
-        nextSong_Img.src = data.queue[i].image
-        nextSong_Img.width = 80
-
-        nextSong.appendChild(nextSong_Name);
-        nextSong.appendChild(nextSong_Img);
-        list.appendChild(nextSong);
-    }
-
+function fillHome(me) {
+    $('name').textContent = 'Name : ' + me.name
+    $('iscon').textContent = 'Connecté'
+    if (me.images && me.images[0]) $('profileimage').src = me.images[0].url
 }
 
-async function checkAuth() {
-    const res = await fetch('/api/me')
-    const data = await res.json()
+// ===== Salle Jam (host + invité) =====
+function enterJamRoom(state) {
+    $('jamCodeLabel').textContent = state.code
+    $('jamHostLabel').textContent = 'Host : ' + state.hostName
+    $('jamMembers').textContent = state.members + ' invité(s)'
 
-    const landing = document.getElementById('landing')
-    const appView = document.getElementById('appView')
-    const jamView = document.getElementById('jamView')
+    // Affiche les éléments selon le rôle
+    const host = state.role === 'host'
+    document.querySelectorAll('.hostOnly').forEach(function(el) { el.style.display = host ? '' : 'none' })
+    document.querySelectorAll('.guestOnly').forEach(function(el) { el.style.display = host ? 'none' : '' })
 
-    if (data.connected) {
-        // Connecté → vue app
-        document.getElementById('name').textContent = 'Name : ' + data.name
-        document.getElementById('iscon').textContent = "Conected"
-        document.getElementById('profileimage').src = data.images[0].url
+    showView('jamRoom')
+    refreshJam()
 
-        landing.classList.add('hidden')
-        jamView.classList.add('hidden')
-        appView.classList.remove('hidden')
+    // Polling régulier (lecture + file)
+    clearInterval(jamPoll)
+    jamPoll = setInterval(refreshJam, 6000)
+}
 
-        curentSongPlayed()
-        getQueu()
+async function refreshJam() {
+    await Promise.all([renderJamCurrent(), renderJamQueue()])
+}
+
+async function renderJamCurrent() {
+    const data = await getJSON('/jam/current')
+    const name = $('jamTrackName')
+    const img = $('jamTrackImg')
+
+    if (data.playing && data.name) {
+        name.textContent = data.name + ' — ' + (data.artists || []).join(', ')
+        if (data.image) img.src = data.image
+    } else if (data.name) {
+        // En pause mais une piste est chargée
+        name.textContent = data.name + ' (pause)'
+        if (data.image) img.src = data.image
     } else {
-        // Déconnecté → vue landing
-        landing.classList.remove('hidden')
-        jamView.classList.add('hidden')
-        appView.classList.add('hidden')
+        name.textContent = 'Rien en lecture'
+        img.removeAttribute('src')
+    }
+
+    // Icône play/pause du host reflète l'état
+    const pp = $('jamPlayPause')
+    if (pp) pp.textContent = data.playing ? '⏸' : '▶'
+}
+
+async function renderJamQueue() {
+    const data = await getJSON('/jam/queue')
+    const list = $('jamQueue')
+    if (!data.queue) { list.innerHTML = ''; return }
+
+    list.innerHTML = ''
+    data.queue.forEach(function(track) {
+        const row = document.createElement('div')
+        row.className = 'songList'
+
+        const img = document.createElement('img')
+        if (track.image) img.src = track.image
+
+        const info = document.createElement('div')
+        info.textContent = track.name + ' — ' + (track.artists || []).join(', ')
+
+        row.appendChild(img)
+        row.appendChild(info)
+        list.appendChild(row)
+    })
+}
+
+// Recherche + ajout (tous les membres)
+async function jamSearch() {
+    const q = $('jamSearchInput').value
+    if (!q.trim()) return
+
+    const data = await getJSON('/jam/search?q=' + encodeURIComponent(q))
+    const box = $('jamResults')
+    box.innerHTML = ''
+
+    ;(data.results || []).forEach(function(t) {
+        const row = document.createElement('div')
+        row.className = 'songList'
+
+        const img = document.createElement('img')
+        if (t.image) img.src = t.image
+
+        const info = document.createElement('div')
+        info.textContent = t.name + ' — ' + t.artists.join(', ')
+
+        const addBtn = document.createElement('button')
+        addBtn.textContent = '+'
+        addBtn.className = 'addBtn'
+        addBtn.addEventListener('click', function() { jamAdd(t.uri, addBtn) })
+
+        row.appendChild(img)
+        row.appendChild(info)
+        row.appendChild(addBtn)
+        box.appendChild(row)
+    })
+}
+
+async function jamAdd(uri, btn) {
+    const r = await postJSON('/jam/add', { uri })
+    if (r.data.ok) {
+        btn.textContent = '✓'
+        $('jamResults').innerHTML = ''
+        $('jamSearchInput').value = ''
+        renderJamQueue()
+    } else {
+        btn.textContent = '✗' // pas de device actif ?
     }
 }
-playEntranceReveal(); // découvre la page si on arrive d'une transition de navigation
-checkAuth();
 
-checkBut = document.getElementById("curentbouton")
+// ===== Actions Jam =====
+async function createJam(e) {
+    const r = await postJSON('/jam/create')
+    if (r.status === 401) {
+        alert('Connecte-toi à Spotify d\'abord')
+        return
+    }
+    if (!r.data.ok) { alert('Création du Jam échouée'); return }
+    floodTransition(paletteColor('--magenta'), e && e.clientX, e && e.clientY, routeView)
+}
 
-checkBut.addEventListener("click", function() {
-    curentSongPlayed()
-})
+async function joinJam() {
+    const code = $('jamCode').value.trim().toUpperCase()
+    const err = $('jamJoinError')
+    err.textContent = ''
+    if (!code) return
 
-listBut = document.getElementById("listbutton")
+    const r = await postJSON('/jam/join', { code })
+    if (r.status === 404) { err.textContent = 'Jam introuvable'; return }
+    if (!r.data.ok) { err.textContent = 'Impossible de rejoindre'; return }
 
-listBut.addEventListener("click", function() {
-    getQueu()
-})
+    floodTransition(paletteColor('--magenta'), null, null, routeView)
+}
+
+async function leaveJam(e) {
+    await postJSON('/jam/leave')
+    clearInterval(jamPoll)
+    floodTransition(paletteColor('--blue'), e && e.clientX, e && e.clientY, routeView)
+}
+
+async function stopJam(e) {
+    if (!confirm('Arrêter le Jam pour tout le monde ?')) return
+    await postJSON('/jam/stop')
+    clearInterval(jamPoll)
+    floodTransition(paletteColor('--red'), e && e.clientX, e && e.clientY, routeView)
+}
+
+async function jamSkip() {
+    const r = await postJSON('/jam/skip')
+    if (!r.data.ok) { alert('Skip échoué (device actif ?)'); return }
+    setTimeout(refreshJam, 400) // laisse Spotify changer de piste
+}
+
+async function jamPlayPause() {
+    const r = await postJSON('/jam/playpause')
+    if (!r.data.ok) { alert('Play/pause échoué (device actif ?)'); return }
+    $('jamPlayPause').textContent = r.data.playing ? '⏸' : '▶'
+}
 
 // ===== Transition iris : disque plein puis trou transparent =====
 function floodTransition(color, x, y, onCovered) {
-    const flood = document.getElementById('flood')
-    const cutter = document.getElementById('cutter')
+    const flood = $('flood')
+    const cutter = $('cutter')
 
-    // Origine = point de clic (centre par défaut)
     if (x == null) x = window.innerWidth / 2
     if (y == null) y = window.innerHeight / 2
 
     flood.style.left = cutter.style.left = x + 'px'
     flood.style.top = cutter.style.top = y + 'px'
     flood.style.background = color
-    cutter.style.boxShadow = '0 0 0 300vmax ' + color // même couleur = raccord invisible
+    cutter.style.boxShadow = '0 0 0 300vmax ' + color
 
-    // Reset cutter
     cutter.classList.remove('active')
     cutter.style.opacity = 0
 
-    // Phase 1 : disque plein de couleur grandit depuis le clic
     flood.classList.remove('active')
-    void flood.offsetWidth // force le redémarrage de l'animation
+    void flood.offsetWidth
     flood.classList.add('active')
 
     setTimeout(function() {
-        onCovered() // bascule la page pile quand l'écran est couvert (couleur pleine)
+        onCovered() // bascule la page pile quand l'écran est couvert
 
-        // HOLD : on garde l'écran tout coloré un instant pendant le changement
         setTimeout(function() {
-            // Phase 2 : trou transparent découpe la couleur → révèle la page
-            cutter.classList.add('active') // démarre plein (trou = 0), même couleur
+            cutter.classList.add('active')
 
-            // On cache le flood SEULEMENT une fois le cutter peint (évite le flash)
+            // On cache le flood seulement une fois le cutter peint (évite le flash)
             requestAnimationFrame(function() {
                 requestAnimationFrame(function() {
                     flood.classList.remove('active')
@@ -130,20 +237,17 @@ function floodTransition(color, x, y, onCovered) {
                 cutter.classList.remove('active')
                 cutter.style.opacity = 0
             }, 500)
-        }, 260) // durée du maintien couleur
+        }, 260)
     }, 500)
 }
 
-// Récupère une couleur de la palette CSS
 function paletteColor(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
-// Transition pour une VRAIE navigation (changement d'URL).
-// On couvre l'écran de couleur, on mémorise, puis on navigue.
-// Le reveal sera rejoué au chargement de la nouvelle page → la transition enjambe la navigation.
+// Transition pour une vraie navigation (changement d'URL)
 function floodNavigate(color, x, y, url) {
-    const flood = document.getElementById('flood')
+    const flood = $('flood')
     if (x == null) x = window.innerWidth / 2
     if (y == null) y = window.innerHeight / 2
 
@@ -155,21 +259,21 @@ function floodNavigate(color, x, y, url) {
     void flood.offsetWidth
     flood.classList.add('active')
 
-    sessionStorage.setItem('freejamReveal', color) // mémorise pour la page suivante
+    sessionStorage.setItem('freejamReveal', color)
     setTimeout(function() { window.location.href = url }, 520)
 }
 
-// Au chargement : si on vient d'une navigation avec transition, on découvre la page.
+// Au chargement : découvre la page si on vient d'une transition de navigation
 function playEntranceReveal() {
     const color = sessionStorage.getItem('freejamReveal')
     if (!color) return
     sessionStorage.removeItem('freejamReveal')
 
-    const cutter = document.getElementById('cutter')
+    const cutter = $('cutter')
     cutter.style.left = '50%'
     cutter.style.top = '50%'
     cutter.style.boxShadow = '0 0 0 300vmax ' + color
-    cutter.classList.add('active') // écran plein couleur → trou s'ouvre → page révélée
+    cutter.classList.add('active')
 
     setTimeout(function() {
         cutter.classList.remove('active')
@@ -177,45 +281,54 @@ function playEntranceReveal() {
     }, 520)
 }
 
+// ===== Vues =====
 function showView(id) {
-    ['landing', 'jamView', 'appView'].forEach(function(v) {
-        document.getElementById(v).classList.toggle('hidden', v !== id)
+    clearInterval(jamPoll) // stoppe le polling en quittant la salle Jam
+    ;['landing', 'jamView', 'appView', 'jamRoom'].forEach(function(v) {
+        $(v).classList.toggle('hidden', v !== id)
     })
     buildSideShapes() // formes neuves à chaque page
 }
 
+// ===== Listeners =====
 // Bouton Spotify : couvre puis navigue (reveal rejoué au retour)
-document.getElementById('login').addEventListener('click', function(e) {
+$('login').addEventListener('click', function(e) {
     e.preventDefault()
     floodNavigate(paletteColor('--lime'), e.clientX, e.clientY, '/login')
 })
 
-// Bouton Jam : flood magenta puis vue Jam
-document.getElementById('joinJam').addEventListener('click', function(e) {
+// Bouton "Se connecter à un Jam" → vue saisie code
+$('joinJam').addEventListener('click', function(e) {
     e.preventDefault()
-    floodTransition(paletteColor('--magenta'), e.clientX, e.clientY,
-        function() { showView('jamView') })
+    floodTransition(paletteColor('--magenta'), e.clientX, e.clientY, function() { showView('jamView') })
 })
 
-// Retour landing depuis Jam
-document.getElementById('jamBack').addEventListener('click', function(e) {
-    floodTransition(paletteColor('--blue'), e.clientX, e.clientY,
-        function() { showView('landing') })
+// Retour landing depuis la vue Jam
+$('jamBack').addEventListener('click', function(e) {
+    floodTransition(paletteColor('--blue'), e.clientX, e.clientY, function() { showView('landing') })
 })
 
-// Rejoindre un Jam (stub — à câbler plus tard)
-document.getElementById('jamJoinBtn').addEventListener('click', function() {
-    const code = document.getElementById('jamCode').value.trim()
-    if (!code) return
-    alert('Jam "' + code + '" — fonctionnalité à venir')
-})
+// Rejoindre un Jam
+$('jamJoinBtn').addEventListener('click', joinJam)
+$('jamCode').addEventListener('keydown', function(e) { if (e.key === 'Enter') joinJam() })
+
+// Créer un Jam (home)
+$('createJamBtn').addEventListener('click', createJam)
+
+// Contrôles salle Jam
+$('jamPlayPause').addEventListener('click', jamPlayPause)
+$('jamSkip').addEventListener('click', jamSkip)
+$('jamStop').addEventListener('click', stopJam)
+$('jamLeave').addEventListener('click', leaveJam)
+$('jamRefresh').addEventListener('click', refreshJam)
+$('jamSearchBtn').addEventListener('click', jamSearch)
+$('jamSearchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') jamSearch() })
 
 // ===== Colonnes de formes Wrapped (côtés PC) =====
 function buildSideShapes() {
     const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'chevron', 'peanut', 'star']
     const COLORS = ['#f0524a', '#ff8ad8', '#ffa64d', '#6f6cf0', '#6fae6f', '#ff3d9a']
 
-    // Génère un clip-path d'étoile/burst
     function starClip(spikes, outer, inner) {
         const pts = []
         for (let i = 0; i < spikes * 2; i++) {
@@ -243,91 +356,25 @@ function buildSideShapes() {
         col.className = 'shapeCol ' + dir
         col.style.animationDuration = dur + 's'
 
-        // Un set de formes (assez haut pour dépasser l'écran)
         const set = []
         for (let i = 0; i < 11; i++) set.push(makeShape())
-        // Set + sa copie → translateY(-50%) reboucle sans coupure
         set.forEach(function(s) { col.appendChild(s) })
         set.forEach(function(s) { col.appendChild(s.cloneNode(true)) })
         return col
     }
 
-    const sides = document.querySelectorAll('.sideShapes')
-    sides.forEach(function(side, sideIdx) {
-        side.innerHTML = '' // vide avant de regénérer (formes neuves à chaque page)
+    document.querySelectorAll('.sideShapes').forEach(function(side, sideIdx) {
+        side.innerHTML = ''
         const cols = parseInt(side.dataset.cols || '3', 10)
         for (let c = 0; c < cols; c++) {
-            const dir = (c + sideIdx) % 2 === 0 ? 'up' : 'down' // alterne haut/bas
-            const dur = 22 + c * 6 + sideIdx * 3 // vitesses désynchronisées
+            const dir = (c + sideIdx) % 2 === 0 ? 'up' : 'down'
+            const dur = 22 + c * 6 + sideIdx * 3
             side.appendChild(buildColumn(dir, dur))
         }
     })
 }
 
-buildSideShapes() // construction initiale
-
-// --- Recherche + ajout à la queue ---
-
-async function searchTracks() {
-    const q = document.getElementById('searchInput').value
-    if (!q.trim()) return
-
-    const res = await fetch('/search?q=' + encodeURIComponent(q))
-    const data = await res.json()
-
-    const box = document.getElementById('searchResults')
-    box.innerHTML = ''
-
-    for (let i = 0; i < data.results.length; i++) {
-        const t = data.results[i]
-
-        const row = document.createElement('div')
-        row.className = 'songList'
-
-        const img = document.createElement('img')
-        img.src = t.image
-        img.width = 48
-
-        const info = document.createElement('div')
-        info.textContent = t.name + ' — ' + t.artists.join(', ')
-
-        const addBtn = document.createElement('button')
-        addBtn.textContent = '+'
-        addBtn.className = 'addBtn'
-        addBtn.addEventListener('click', function() {
-            addToQueue(t.uri, addBtn)
-        })
-
-        row.appendChild(img)
-        row.appendChild(info)
-        row.appendChild(addBtn)
-        box.appendChild(row)
-    }
-}
-
-async function addToQueue(uri, btn) {
-    const res = await fetch('/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uri })
-    })
-    const data = await res.json()
-
-    if (data.ok) {
-        btn.textContent = '✓' // feedback ajouté
-        getQueu() // rafraîchit la file
-        document.getElementById('searchResults').innerHTML = ""
-    } else {
-        btn.textContent = '✗' // échec (pas de device actif ?)
-    }
-}
-
-const searchButton = document.getElementById('searchButton')
-searchButton.addEventListener('click', searchTracks)
-
-// Entrée clavier = lance la recherche
-document.getElementById('searchInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') searchTracks()
-})
-
-//NEWS
+// ===== Démarrage =====
+buildSideShapes()
+playEntranceReveal()
+routeView()

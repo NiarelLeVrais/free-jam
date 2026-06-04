@@ -52,18 +52,65 @@ function makeSpotify(sess) {
     return api
 }
 
-// Renvoie une instance Spotify prête (token rafraîchi), ou null si non connecté
-async function ensureToken(sess) {
-    if (!sess.refreshToken) return null // pas connecté
-    const api = makeSpotify(sess)
+// Renvoie une instance Spotify prête (token rafraîchi) pour N'IMPORTE QUEL
+// porteur de token : une session OU un jam (mêmes champs accessToken/refreshToken/tokenExpiry).
+async function ensureTokenFor(holder) {
+    if (!holder.refreshToken) return null // pas connecté
+    const api = new SpotifyWebApi({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, redirectUri: REDIRECT_URI })
+    api.setAccessToken(holder.accessToken)
+    api.setRefreshToken(holder.refreshToken)
 
-    if (!sess.tokenExpiry || Date.now() >= sess.tokenExpiry) {
+    if (!holder.tokenExpiry || Date.now() >= holder.tokenExpiry) {
         const data = await api.refreshAccessToken()
-        sess.accessToken = data.body['access_token']
-        sess.tokenExpiry = Date.now() + data.body['expires_in'] * 1000
-        api.setAccessToken(sess.accessToken)
+        holder.accessToken = data.body['access_token']
+        holder.tokenExpiry = Date.now() + data.body['expires_in'] * 1000
+        api.setAccessToken(holder.accessToken)
     }
     return api
+}
+
+// Raccourci session
+function ensureToken(sess) {
+    return ensureTokenFor(sess)
+}
+
+// ---------- JAM ----------
+// Store en mémoire : code -> { hostName, tokens du host, members, ... }
+const jams = new Map()
+
+// Génère un code court unique (sans caractères ambigus)
+function makeJamCode() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+    let code
+    do {
+        code = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    } while (jams.has(code))
+    return code
+}
+
+// Récupère le jam lié à la session (ou null si stoppé/absent)
+function getJam(sess) {
+    if (!sess.jam || !sess.jam.code) return null
+    return jams.get(sess.jam.code) || null
+}
+
+function isHost(sess) {
+    return sess.jam && sess.jam.role === 'host' && jams.has(sess.jam.code)
+}
+
+// Renvoie { jam, api } prêt (token du host rafraîchi), ou répond une erreur et null
+async function jamApi(req, res) {
+    const jam = getJam(req.session)
+    if (!jam) {
+        res.status(404).json({ error: 'Pas dans un Jam' })
+        return null
+    }
+    const api = await ensureTokenFor(jam)
+    if (!api) {
+        res.status(500).json({ error: 'Token host invalide' })
+        return null
+    }
+    return { jam, api }
 }
 
 // ---------- SPOTIFY ----------
@@ -219,6 +266,189 @@ app.post('/add', async(req, res) => {
         console.error('Ajout queue échoué :', err.body || err.message)
         // 404 = pas de device actif sur Spotify
         res.status(500).json({ error: 'Ajout échoué (device actif ?)' })
+    }
+})
+
+// ---------- ROUTES JAM ----------
+
+// Créer un Jam (host = doit être connecté à Spotify)
+app.post('/jam/create', async(req, res) => {
+    try {
+        if (!req.session.refreshToken) {
+            return res.status(401).json({ error: 'Connecte-toi à Spotify d\'abord' })
+        }
+        const api = await ensureToken(req.session)
+        const me = await api.getMe()
+
+        const code = makeJamCode()
+        jams.set(code, {
+            code,
+            hostName: me.body.display_name,
+            // Copie des tokens du host : les invités jouent sur SON Spotify
+            accessToken: req.session.accessToken,
+            refreshToken: req.session.refreshToken,
+            tokenExpiry: req.session.tokenExpiry,
+            members: 0,
+            createdAt: Date.now()
+        })
+        req.session.jam = { code, role: 'host' }
+        res.json({ ok: true, code, role: 'host' })
+    } catch (err) {
+        console.error('Création Jam échouée :', err.body || err.message)
+        res.status(500).json({ error: 'Création Jam échouée' })
+    }
+})
+
+// Rejoindre un Jam (invité, pas besoin de Spotify)
+app.post('/jam/join', (req, res) => {
+    const code = (req.body.code || '').trim().toUpperCase()
+    const jam = jams.get(code)
+    if (!jam) return res.status(404).json({ error: 'Jam introuvable' })
+
+    req.session.jam = { code, role: 'guest' }
+    jam.members++
+    res.json({ ok: true, code, role: 'guest', hostName: jam.hostName })
+})
+
+// Quitter le Jam
+app.post('/jam/leave', (req, res) => {
+    const jam = getJam(req.session)
+    if (jam && req.session.jam.role === 'guest' && jam.members > 0) jam.members--
+    req.session.jam = null
+    res.json({ ok: true })
+})
+
+// Arrêter le Jam (host uniquement) → supprime le Jam pour tout le monde
+app.post('/jam/stop', (req, res) => {
+    if (!isHost(req.session)) return res.status(403).json({ error: 'Host uniquement' })
+    jams.delete(req.session.jam.code)
+    req.session.jam = null
+    res.json({ ok: true })
+})
+
+// État du Jam pour cette session → le front choisit la vue
+app.get('/jam/state', (req, res) => {
+    const sj = req.session.jam
+    if (!sj) return res.json({ inJam: false })
+
+    const jam = jams.get(sj.code)
+    if (!jam) {
+        req.session.jam = null // le Jam a été stoppé
+        return res.json({ inJam: false, ended: true })
+    }
+    res.json({ inJam: true, code: jam.code, role: sj.role, hostName: jam.hostName, members: jam.members })
+})
+
+// Lecture en cours du Jam (token host)
+app.get('/jam/current', async(req, res) => {
+    const j = await jamApi(req, res); if (!j) return
+    try {
+        const data = await j.api.getMyCurrentPlayingTrack()
+        if (!data.body || !data.body.item) return res.json({ playing: false })
+        const track = data.body.item
+        res.json({
+            playing: data.body.is_playing,
+            name: track.name,
+            artists: track.artists.map(a => a.name),
+            album: track.album.name,
+            image: track.album.images[0] && track.album.images[0].url
+        })
+    } catch (err) {
+        console.error('Jam current échoué :', err.body || err.message)
+        res.status(500).json({ error: 'Lecture échouée' })
+    }
+})
+
+// File du Jam (token host)
+app.get('/jam/queue', async(req, res) => {
+    const j = await jamApi(req, res); if (!j) return
+    try {
+        const r = await fetch('https://api.spotify.com/v1/me/player/queue', {
+            headers: { Authorization: 'Bearer ' + j.api.getAccessToken() }
+        })
+        if (r.status === 204) return res.json({ queue: [] })
+        if (!r.ok) throw new Error('Spotify ' + r.status)
+
+        const data = await r.json()
+        const queue = (data.queue || []).map(track => ({
+            name: track.name,
+            artists: (track.artists || []).map(a => a.name),
+            album: track.album ? track.album.name : (track.show && track.show.name),
+            image: ((track.album || track.show || {}).images || [])[0] &&
+                ((track.album || track.show || {}).images || [])[0].url
+        }))
+        res.json({ queue })
+    } catch (err) {
+        console.error('Jam queue échoué :', err.body || err.message)
+        res.status(500).json({ error: 'File échouée' })
+    }
+})
+
+// Recherche dans le Jam (host token, autorisé à tous les membres)
+app.get('/jam/search', async(req, res) => {
+    const j = await jamApi(req, res); if (!j) return
+    try {
+        const q = (req.query.q || '').trim()
+        if (!q) return res.json({ results: [] })
+
+        const data = await j.api.searchTracks(q, { limit: 10 })
+        const results = (data.body.tracks.items || []).map(track => ({
+            uri: track.uri,
+            name: track.name,
+            artists: track.artists.map(a => a.name),
+            album: track.album.name,
+            image: track.album.images[0] && track.album.images[0].url
+        }))
+        res.json({ results })
+    } catch (err) {
+        console.error('Jam search échoué :', err.body || err.message)
+        res.status(500).json({ error: 'Recherche échouée' })
+    }
+})
+
+// Ajout à la file du Jam (tous les membres)
+app.post('/jam/add', async(req, res) => {
+    const j = await jamApi(req, res); if (!j) return
+    try {
+        const uri = req.body.uri
+        if (!uri) return res.status(400).json({ error: 'uri manquant' })
+        await j.api.addToQueue(uri)
+        res.json({ ok: true })
+    } catch (err) {
+        console.error('Jam add échoué :', err.body || err.message)
+        res.status(500).json({ error: 'Ajout échoué (device actif ?)' })
+    }
+})
+
+// Passer à la suivante (host uniquement)
+app.post('/jam/skip', async(req, res) => {
+    if (!isHost(req.session)) return res.status(403).json({ error: 'Host uniquement' })
+    const j = await jamApi(req, res); if (!j) return
+    try {
+        await j.api.skipToNext()
+        res.json({ ok: true })
+    } catch (err) {
+        console.error('Jam skip échoué :', err.body || err.message)
+        res.status(500).json({ error: 'Skip échoué (device actif ?)' })
+    }
+})
+
+// Play/Pause (host uniquement) → bascule selon l'état courant
+app.post('/jam/playpause', async(req, res) => {
+    if (!isHost(req.session)) return res.status(403).json({ error: 'Host uniquement' })
+    const j = await jamApi(req, res); if (!j) return
+    try {
+        const state = await j.api.getMyCurrentPlaybackState()
+        if (state.body && state.body.is_playing) {
+            await j.api.pause()
+            res.json({ ok: true, playing: false })
+        } else {
+            await j.api.play()
+            res.json({ ok: true, playing: true })
+        }
+    } catch (err) {
+        console.error('Jam play/pause échoué :', err.body || err.message)
+        res.status(500).json({ error: 'Play/pause échoué (device actif ?)' })
     }
 })
 

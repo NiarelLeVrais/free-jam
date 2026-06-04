@@ -272,7 +272,7 @@ h3 {
 }
 
 /* ----- Carte lecture en cours ----- */
-#track {
+.track {
     color: var(--text);
     display: flex;
     flex-direction: column;
@@ -285,20 +285,13 @@ h3 {
     justify-content: center;
 }
 
-#track h2 {
-    width: auto;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-#trackname {
+.track > div {
     font-size: 18px;
     font-weight: 700;
     text-align: center;
 }
 
-#trackimg {
+.track > img {
     border-radius: 8px;
     width: 220px;
     height: 220px;
@@ -308,7 +301,9 @@ h3 {
 
 /* ----- Listes (file + résultats recherche) ----- */
 #file,
-#searchResults {
+#searchResults,
+#jamQueue,
+#jamResults {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -409,6 +404,105 @@ h3 {
     transform: scale(1.1);
 }
 
+/* ===== Salle Jam ===== */
+.jamHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 340px;
+    text-align: center;
+}
+
+.jamCode {
+    font-family: 'Anton', sans-serif;
+    font-size: 34px;
+    letter-spacing: 4px;
+    color: var(--magenta);
+}
+
+.jamSub {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.jamControls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 340px;
+}
+
+.jamControls button {
+    border: none;
+    border-radius: 500px;
+    background: var(--bg-elev);
+    color: var(--text);
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.jamControls button:hover {
+    background: var(--bg-hover);
+    transform: scale(1.05);
+}
+
+/* Ronds play/pause + skip */
+#jamPlayPause,
+#jamSkip {
+    width: 52px;
+    height: 52px;
+    font-size: 20px;
+    background: var(--lime);
+    color: #000;
+}
+
+#jamPlayPause:hover,
+#jamSkip:hover {
+    background: var(--green-hover);
+}
+
+.stopBtn {
+    padding: 12px 20px;
+    background: var(--red) !important;
+    color: #fff;
+}
+
+/* Barre titre file + refresh */
+.jamBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 340px;
+}
+
+#jamRefresh {
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    background: var(--bg-elev);
+    color: var(--text);
+    font-size: 18px;
+    transition: background 0.15s, transform 0.3s;
+}
+
+#jamRefresh:hover {
+    background: var(--bg-hover);
+    transform: rotate(180deg);
+}
+
+.errorMsg {
+    color: var(--red);
+    font-size: 13px;
+    min-height: 16px;
+}
+
 /* ===== Colonnes de formes Wrapped sur les côtés (PC) ===== */
 .sideShapes {
     position: fixed;
@@ -506,8 +600,10 @@ h3 {
 /* Largeurs fluides sur petit écran */
 @media (max-width: 420px) {
     h2, h3,
-    #track, #file, #searchResults,
-    .searchBar, .profile {
+    .track, #file, #searchResults,
+    #jamQueue, #jamResults,
+    .searchBar, .profile,
+    .jamHeader, .jamControls, .jamBar {
         width: 100%;
         max-width: 340px;
     }
