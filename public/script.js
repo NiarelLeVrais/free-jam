@@ -238,7 +238,13 @@ function enterJamRoom(state) {
 }
 
 async function refreshJam() {
-    await Promise.all([renderJamCurrent(), renderJamQueue()])
+    const btn = $('jamRefresh')
+    btn.classList.add('spinning')
+    try {
+        await Promise.all([renderJamCurrent(), renderJamQueue()])
+    } finally {
+        btn.classList.remove('spinning')
+    }
 }
 
 async function renderJamCurrent() {
@@ -587,7 +593,7 @@ document.addEventListener('visibilitychange', function() {
 
 // ===== Colonnes de formes Wrapped (côtés PC) =====
 function buildSideShapes() {
-    const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'peanut', 'star']
+    const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'star']
     const COLORS = ['#f0524a', '#ff8ad8', '#ffa64d', '#6f6cf0', '#6fae6f', '#ff3d9a']
 
     function starClip(spikes, outer, inner) {
@@ -607,7 +613,6 @@ function buildSideShapes() {
         const el = document.createElement('span')
         el.className = 'shape ' + type
         el.style.background = color
-        if (type === 'peanut') el.style.setProperty('--peanut-color', color)
         if (type === 'star') el.style.setProperty('--star-clip', STAR)
         return el
     }
