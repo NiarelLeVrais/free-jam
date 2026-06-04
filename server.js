@@ -99,6 +99,32 @@ app.get('/disconect', (req, res) => {
     res.redirect('/')
 })
 
+app.get('/curent', async(req, res) => {
+    try {
+        const ok = await ensureToken()
+        if (!ok) return res.json({ connected: false })
+
+        const data = await spotifyApi.getMyCurrentPlayingTrack()
+
+        // Rien en lecture : Spotify renvoie un corps vide (204)
+        if (!data.body || !data.body.item) {
+            return res.json({ playing: false })
+        }
+
+        const track = data.body.item
+        res.json({
+            playing: true,
+            name: track.name,
+            artists: track.artists.map(a => a.name),
+            album: track.album.name,
+            image: track.album.images[0] && track.album.images[0].url
+        })
+    } catch (err) {
+        console.error('Lecture en cours échouée :', err.body || err.message)
+        res.status(500).json({ error: 'Lecture échouée' })
+    }
+})
+
 // Démarrer le serveur
 const PORT = process.env.PORT || 4102
 app.listen(PORT, () => {
