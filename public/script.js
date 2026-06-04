@@ -129,7 +129,7 @@ async function addToQueue(uri, btn) {
     if (data.ok) {
         btn.textContent = '✓' // feedback ajouté
         getQueu() // rafraîchit la file
-        document.getElementById('searchResults') = ""
+        document.getElementById('searchResults').innerHTML = ""
     } else {
         btn.textContent = '✗' // échec (pas de device actif ?)
     }
