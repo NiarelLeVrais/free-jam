@@ -571,48 +571,46 @@ h3 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 36px;
+    gap: 54px;
     will-change: transform;
 }
 
 .shapeCol.up { animation: scrollUp linear infinite; }
 .shapeCol.down { animation: scrollDown linear infinite; }
 
-/* Contenu dupliqué x2 → -50% = un set complet = boucle invisible */
+/* Contenu dupliqué x2. Décalage pixel exact (--shift) calculé en JS depuis la
+   hauteur réelle d'un set → couture invisible, pas de saut au bouclage.
+   Fallback 50% si --shift pas encore posé. */
 @keyframes scrollUp {
     from { transform: translateY(0); }
-    to   { transform: translateY(-50%); }
+    to   { transform: translateY(calc(var(--shift, 50%) * -1)); }
 }
 
 @keyframes scrollDown {
-    from { transform: translateY(-50%); }
+    from { transform: translateY(calc(var(--shift, 50%) * -1)); }
     to   { transform: translateY(0); }
 }
 
-/* Forme de base */
+/* Forme de base (×1.5) */
 .shape {
-    width: 110px;
-    height: 110px;
+    width: 165px;
+    height: 165px;
     flex-shrink: 0;
 }
 
 /* Variantes (clip-path / border-radius) */
-.shape.sq { border-radius: 8px; }
+.shape.sq { border-radius: 0; }
 .shape.circle { border-radius: 50%; }
-.shape.half { height: 60px; border-radius: 110px 110px 0 0; }
+.shape.half { height: 90px; border-radius: 165px 165px 0 0; }
 .shape.triUp { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .shape.triDown { clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .shape.diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 .shape.pent { clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%); }
-.shape.chevron {
-    height: 140px;
-    clip-path: polygon(0 0, 50% 22%, 100% 0, 100% 30%, 50% 52%, 100% 48%, 100% 78%, 50% 100%, 0 78%, 0 48%, 50% 52%, 0 30%);
-}
 
-/* Cacahuète = 2 cercles qui se chevauchent */
+/* Cacahuète = 2 cercles qui se chevauchent (×1.5) */
 .shape.peanut {
-    width: 86px;
-    height: 130px;
+    width: 129px;
+    height: 195px;
     background: transparent !important;
     position: relative;
 }
@@ -621,8 +619,8 @@ h3 {
     content: "";
     position: absolute;
     left: 0;
-    width: 86px;
-    height: 86px;
+    width: 129px;
+    height: 129px;
     border-radius: 50%;
     background: inherit;
 }
@@ -749,11 +747,28 @@ h3 {
 
 .confirmActions button {
     flex: 1;
+    height: 50px;
+    padding: 0 20px;
     border-radius: 500px;
-    padding: 12px 20px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.15s, border-color 0.15s;
 }
 
-.confirmActions .stopBtn { height: auto; }
+.confirmActions button:hover { transform: scale(1.04); }
+.confirmActions button:active { transform: scale(0.97); }
+
+/* Bouton suppression = rouge plein, même gabarit que "Arrêter le Jam" */
+.confirmActions .stopBtn {
+    height: 50px;
+    background: var(--red) !important;
+    color: #fff;
+    border: none;
+}
+
+.confirmActions .stopBtn:hover { background: #e61f00 !important; }
 
 /* ===== Reduced motion : coupe boucles infinies + transitions iris ===== */
 @media (prefers-reduced-motion: reduce) {

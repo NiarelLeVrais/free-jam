@@ -454,7 +454,7 @@ document.addEventListener('visibilitychange', function() {
 
 // ===== Colonnes de formes Wrapped (côtés PC) =====
 function buildSideShapes() {
-    const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'chevron', 'peanut', 'star']
+    const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'peanut', 'star']
     const COLORS = ['#f0524a', '#ff8ad8', '#ffa64d', '#6f6cf0', '#6fae6f', '#ff3d9a']
 
     function starClip(spikes, outer, inner) {
@@ -491,13 +491,25 @@ function buildSideShapes() {
         return col
     }
 
+    // Décalage pixel exact d'un set (formes de hauteurs variables) → boucle sans saut.
+    // total(2 sets) = 2*setBlock + gap  ⇒  shift = setBlock + gap = (total + gap) / 2
+    function setShift(col) {
+        const gap = parseFloat(getComputedStyle(col).rowGap) || 0
+        let sum = 0
+        for (let i = 0; i < col.children.length; i++) sum += col.children[i].offsetHeight
+        const total = sum + gap * (col.children.length - 1)
+        col.style.setProperty('--shift', ((total + gap) / 2) + 'px')
+    }
+
     document.querySelectorAll('.sideShapes').forEach(function(side, sideIdx) {
         side.innerHTML = ''
         const cols = parseInt(side.dataset.cols || '3', 10)
         for (let c = 0; c < cols; c++) {
             const dir = (c + sideIdx) % 2 === 0 ? 'up' : 'down'
             const dur = 22 + c * 6 + sideIdx * 3
-            side.appendChild(buildColumn(dir, dur))
+            const col = buildColumn(dir, dur)
+            side.appendChild(col)
+            setShift(col) // mesure après insertion (offsetHeight dispo)
         }
     })
 }
