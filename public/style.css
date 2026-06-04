@@ -63,18 +63,40 @@ body {
     line-height: 1.3;
 }
 
-.track {
+/* Carte "lecture en cours" — #track car id dans le HTML, pas une classe */
+#track {
     color: #fff;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
     background-color: #181818;
     border-radius: 10px;
-    pading: 20px;
+    padding: 20px;
+    width: 320px;
+    box-sizing: border-box;
     justify-content: center;
 }
 
-.track img {
-    border-radius: 5px;
+/* Titre "Curent song :" */
+#track h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #b3b3b3;
+}
+
+/* Nom du morceau */
+#trackname {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* Pochette */
+#trackimg {
+    border-radius: 8px;
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
 }

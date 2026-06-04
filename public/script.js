@@ -6,12 +6,12 @@ async function curentSongPlayed() {
     const track = document.getElementById('track')
 
     if (data.playing) {
-        track.style.display = 'inline'
+        track.style.display = 'flex'
         document.getElementById('trackname').textContent = data.name
         document.getElementById('trackimg').src = data.image
     } else {
         // Rien en lecture : feedback au lieu de clic muet
-        track.style.display = 'inline'
+        track.style.display = 'flex'
         document.getElementById('trackname').textContent = 'Rien en lecture'
         document.getElementById('trackimg').removeAttribute('src')
     }
