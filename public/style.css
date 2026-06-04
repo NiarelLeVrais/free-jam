@@ -1,15 +1,23 @@
-/* ===== DA Spotify ===== */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');
+/* ===== DA FREE JAM (Wrapped liquide) ===== */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;600;700;800&display=swap');
 
 :root {
-    --bg: #121212;
-    --bg-elev: #181818;
-    --bg-hover: #282828;
-    --green: #1db954;
-    --green-hover: #1ed760;
+    /* Palette extraite du logo */
+    --blue: #1a1ae6;
+    --lime: #c4f000;
+    --magenta: #ff1e8c;
+    --red: #ff2200;
+
+    --bg: #0a0a0a;
+    --bg-elev: #161616;
+    --bg-hover: #242424;
     --text: #ffffff;
     --text-muted: #b3b3b3;
-    --radius: 10px;
+    --radius: 12px;
+
+    /* Accent principal = lime du logo (texte noir lisible dessus) */
+    --green: var(--lime);
+    --green-hover: #d6ff2e;
 }
 
 * {
@@ -17,6 +25,7 @@
 }
 
 body {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -27,14 +36,73 @@ body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Montserrat', system-ui, sans-serif;
+    overflow-x: hidden;
+}
+
+/* ----- Logo ----- */
+.logo {
+    width: min(420px, 80vw);
+    height: auto;
+    margin-bottom: 8px;
+}
+
+/* ----- Formes liquides de fond ----- */
+.blob {
+    position: fixed;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.55;
+    pointer-events: none;
+    will-change: transform;
+}
+
+.blob1 {
+    width: 380px;
+    height: 380px;
+    background: var(--magenta);
+    top: -80px;
+    left: -100px;
+    animation: float1 14s ease-in-out infinite;
+}
+
+.blob2 {
+    width: 320px;
+    height: 320px;
+    background: var(--blue);
+    top: 30%;
+    right: -120px;
+    animation: float2 18s ease-in-out infinite;
+}
+
+.blob3 {
+    width: 300px;
+    height: 300px;
+    background: var(--lime);
+    bottom: -100px;
+    left: 20%;
+    animation: float3 16s ease-in-out infinite;
+}
+
+@keyframes float1 {
+    50% { transform: translate(60px, 40px) scale(1.15); }
+}
+
+@keyframes float2 {
+    50% { transform: translate(-50px, 30px) scale(1.1); }
+}
+
+@keyframes float3 {
+    50% { transform: translate(40px, -50px) scale(1.2); }
 }
 
 /* ----- Titres ----- */
 h1 {
     margin: 0;
-    font-size: 40px;
-    font-weight: 800;
-    letter-spacing: -1px;
+    font-family: 'Anton', sans-serif;
+    font-size: 48px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 h2,
@@ -98,15 +166,24 @@ h3 {
     transform: scale(1.04);
 }
 
-/* Jam : secondaire, contour (feature à venir) */
-#joinJam,
+/* Jam : action phare = magenta plein */
+#joinJam {
+    background: var(--magenta);
+    color: #fff;
+}
+
+#joinJam:hover {
+    background: #ff47a3;
+    transform: scale(1.04);
+}
+
+/* Déconnexion : secondaire contour */
 #disconect {
     background: transparent;
     border: 1px solid #555;
     color: var(--text);
 }
 
-#joinJam:hover,
 #disconect:hover {
     border-color: var(--text);
     transform: scale(1.04);
