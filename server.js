@@ -148,6 +148,37 @@ app.get('/curent', async(req, res) => {
     }
 })
 
+// File d'attente : musiques qui vont arriver
+app.get('/queue', async(req, res) => {
+    try {
+        const api = await ensureToken(req.session)
+        if (!api) return res.json({ connected: false })
+
+        // Appel direct : la lib ne wrappe pas /me/player/queue
+        const r = await fetch('https://api.spotify.com/v1/me/player/queue', {
+            headers: { Authorization: 'Bearer ' + api.getAccessToken() }
+        })
+
+        // 204 = rien en lecture
+        if (r.status === 204) return res.json({ queue: [] })
+        if (!r.ok) throw new Error('Spotify ' + r.status)
+
+        const data = await r.json()
+        const queue = (data.queue || []).map(track => ({
+            name: track.name,
+            artists: (track.artists || []).map(a => a.name), // épisode = pas d'artists
+            album: track.album ? track.album.name : (track.show && track.show.name),
+            image: ((track.album || track.show || {}).images || [])[0] &&
+                ((track.album || track.show || {}).images || [])[0].url
+        }))
+
+        res.json({ queue })
+    } catch (err) {
+        console.error('Récup file échouée :', err.body || err.message)
+        res.status(500).json({ error: 'File échouée' })
+    }
+})
+
 // Démarrer le serveur
 const PORT = process.env.PORT || 4102
 app.listen(PORT, () => {

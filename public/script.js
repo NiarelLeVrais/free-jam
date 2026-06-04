@@ -3,10 +3,17 @@ async function curentSongPlayed() {
     const res = await fetch('/curent')
     const data = await res.json()
 
+    const track = document.getElementById('track')
+
     if (data.playing) {
-        document.getElementById('track').style.display = 'inline'
+        track.style.display = 'inline'
         document.getElementById('trackname').textContent = data.name
         document.getElementById('trackimg').src = data.image
+    } else {
+        // Rien en lecture : feedback au lieu de clic muet
+        track.style.display = 'inline'
+        document.getElementById('trackname').textContent = 'Rien en lecture'
+        document.getElementById('trackimg').removeAttribute('src')
     }
 }
 
