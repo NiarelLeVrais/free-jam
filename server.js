@@ -23,7 +23,11 @@ let tokenExpiry = null
 app.use(express.json())
 
 // Sert les fichiers statiques du dossier public
-app.use(express.static('public'))
+app.use(express.static('public', {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js')) res.setHeader('Cache-Control', 'no-cache')
+    }
+}))
 
 // Une route GET simple
 app.get('/api/hello', (req, res) => {
