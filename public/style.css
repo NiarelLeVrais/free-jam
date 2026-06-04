@@ -13,8 +13,43 @@ body {
     /* espace entre éléments */
 }
 
+/* Conteneur file d'attente : colonne de cartes */
+#file {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 320px;
+}
+
+/* Une musique à venir = carte horizontale */
 .songList {
     display: flex;
     flex-direction: row;
+    align-items: center;
     gap: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    background: #181818;
+    color: #fff;
+    transition: background 0.15s;
+}
+
+.songList:hover {
+    background: #282828;
+}
+
+/* Pochette */
+.songList img {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    order: -1; /* pochette à gauche, avant le nom */
+}
+
+/* Nom track */
+.songList div {
+    font-size: 14px;
+    line-height: 1.3;
 }
