@@ -36,7 +36,7 @@ app.use(session({
 // Sert les fichiers statiques du dossier public (pas de cache sur les .js)
 app.use(express.static('public', {
     setHeaders: (res, path) => {
-        if (path.endsWith('.js')) res.setHeader('Cache-Control', 'no-cache')
+        if (path.endsWith('.js')) res.setHeader('Cache-Control', 'no-store')
     }
 }))
 
