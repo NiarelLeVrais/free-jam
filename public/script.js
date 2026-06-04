@@ -47,19 +47,21 @@ async function checkAuth() {
     const res = await fetch('/api/me')
     const data = await res.json()
 
-    document.getElementById('disconect').style.display = 'none'
+    const authButtons = document.getElementById('authButtons')
+    const disconect = document.getElementById('disconect')
 
     if (data.connected) {
         document.getElementById('name').textContent = 'Name : ' + data.name
-        document.getElementById('login').style.display = 'none'
-        document.getElementById('disconect').style.display = 'inline'
+        authButtons.style.display = 'none'   // cache les 2 boutons de connexion
+        disconect.style.display = 'inline'
         document.getElementById('iscon').textContent = "Conected"
         document.getElementById('profileimage').src = data.images[0].url
 
         curentSongPlayed()
     } else {
         document.getElementById('name').textContent = 'Non connecté'
-        document.getElementById('login').style.display = 'inline'
+        authButtons.style.display = 'flex'   // montre les 2 boutons
+        disconect.style.display = 'none'
         document.getElementById('iscon').textContent = "Disconected"
         document.getElementById('track').style.display = 'none'
     }
