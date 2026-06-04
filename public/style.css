@@ -233,34 +233,55 @@ h3 {
     border-color: var(--text);
 }
 
-/* ===== Transition Mario (couleur inonde l'écran) ===== */
-#flood {
+/* ===== Transition Mario (iris 2 cercles) ===== */
+/* Cercles parfaits : largeur = hauteur (vmax), border-radius 50% */
+#flood,
+#cutter {
     position: fixed;
-    inset: 0;
+    top: 50%;            /* JS repositionne au point de clic */
+    left: 50%;
     z-index: 100;
-    background: var(--magenta);
     border-radius: 50%;
-    transform: scale(0);
-    opacity: 0;
     pointer-events: none;
+    opacity: 0;
+}
+
+/* Phase 1 : disque plein de couleur qui grandit depuis le clic */
+#flood {
+    width: 300vmax;
+    height: 300vmax;
+    background: var(--magenta);
+    transform: translate(-50%, -50%) scale(0);
 }
 
 #flood.active {
-    animation: floodIn 0.55s ease-in forwards;
-}
-
-#flood.out {
-    animation: floodOut 0.55s ease-out forwards;
+    opacity: 1;
+    animation: floodIn 0.5s ease-in forwards;
 }
 
 @keyframes floodIn {
-    0% { transform: scale(0); opacity: 1; border-radius: 50%; }
-    100% { transform: scale(3); opacity: 1; border-radius: 0; }
+    from { transform: translate(-50%, -50%) scale(0); }
+    to   { transform: translate(-50%, -50%) scale(1); }
 }
 
-@keyframes floodOut {
-    0% { transform: scale(3); opacity: 1; border-radius: 0; }
-    100% { transform: scale(3); opacity: 0; border-radius: 0; }
+/* Phase 2 : trou transparent qui découpe la couleur → révèle la page */
+#cutter {
+    width: 0;
+    height: 0;
+    background: transparent;
+    /* la couleur remplit tout AUTOUR du trou */
+    box-shadow: 0 0 0 300vmax var(--magenta);
+    transform: translate(-50%, -50%);
+}
+
+#cutter.active {
+    opacity: 1;
+    animation: cutOpen 0.5s ease-out forwards;
+}
+
+@keyframes cutOpen {
+    from { width: 0; height: 0; }
+    to   { width: 300vmax; height: 300vmax; }
 }
 
 /* ----- Barre de boutons ----- */
@@ -427,81 +448,93 @@ h3 {
     transform: scale(1.1);
 }
 
-/* ===== Formes Wrapped sur les côtés (PC) ===== */
+/* ===== Colonnes de formes Wrapped sur les côtés (PC) ===== */
 .sideShapes {
     position: fixed;
     top: 0;
     bottom: 0;
-    width: 160px;
+    width: 340px;
     z-index: -1;
     pointer-events: none;
     overflow: hidden;
+    display: flex;
+    gap: 14px;
+    padding: 0 10px;
 }
 
-.sideShapes.left {
-    left: 0;
-}
+.sideShapes.left { left: 0; }
+.sideShapes.right { right: 0; }
 
-.sideShapes.right {
-    right: 0;
-}
-
-.shape {
-    position: absolute;
-    left: 50%;
-    width: 64px;
-    height: 64px;
-    opacity: 0.9;
+/* Une colonne : pile de formes qui défile en boucle */
+.shapeCol {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 26px;
     will-change: transform;
 }
 
-/* Formes géométriques */
-.shape.cube {
-    background: var(--blue);
-    border-radius: 8px;
+.shapeCol.up { animation: scrollUp linear infinite; }
+.shapeCol.down { animation: scrollDown linear infinite; }
+
+/* Contenu dupliqué x2 → -50% = un set complet = boucle invisible */
+@keyframes scrollUp {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-50%); }
 }
 
-.shape.circle {
-    background: var(--magenta);
+@keyframes scrollDown {
+    from { transform: translateY(-50%); }
+    to   { transform: translateY(0); }
+}
+
+/* Forme de base */
+.shape {
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+}
+
+/* Variantes (clip-path / border-radius) */
+.shape.sq { border-radius: 6px; }
+.shape.circle { border-radius: 50%; }
+.shape.half { height: 40px; border-radius: 72px 72px 0 0; }
+.shape.triUp { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.shape.triDown { clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.shape.diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.shape.pent { clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%); }
+.shape.chevron {
+    height: 92px;
+    clip-path: polygon(0 0, 50% 22%, 100% 0, 100% 30%, 50% 52%, 100% 48%, 100% 78%, 50% 100%, 0 78%, 0 48%, 50% 52%, 0 30%);
+}
+
+/* Cacahuète = 2 cercles qui se chevauchent */
+.shape.peanut {
+    width: 56px;
+    height: 86px;
+    background: transparent !important;
+    position: relative;
+}
+.shape.peanut::before,
+.shape.peanut::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
+    background: inherit;
 }
+.shape.peanut::before { top: 0; }
+.shape.peanut::after { bottom: 0; }
+/* peanut hérite la couleur via variable inline */
+.shape.peanut { background: transparent; }
+.shape.peanut::before,
+.shape.peanut::after { background: var(--peanut-color, var(--magenta)); }
 
-.shape.half {
-    background: var(--lime);
-    border-radius: 64px 64px 0 0;
-    height: 32px;
-}
-
-.shape.triangle {
-    width: 0;
-    height: 0;
-    background: transparent;
-    border-left: 32px solid transparent;
-    border-right: 32px solid transparent;
-    border-bottom: 56px solid var(--red);
-}
-
-/* Répartition verticale + directions alternées */
-.sideShapes .shape:nth-child(1) { top: 10%; animation: rise 13s linear infinite; }
-.sideShapes .shape:nth-child(2) { top: 35%; animation: fall 16s linear infinite; }
-.sideShapes .shape:nth-child(3) { top: 60%; animation: rise 18s linear infinite; }
-.sideShapes .shape:nth-child(4) { top: 80%; animation: fall 15s linear infinite; }
-
-/* Décalage côté droit pour désynchroniser */
-.sideShapes.right .shape:nth-child(1) { animation-delay: -4s; }
-.sideShapes.right .shape:nth-child(2) { animation-delay: -8s; }
-.sideShapes.right .shape:nth-child(3) { animation-delay: -2s; }
-.sideShapes.right .shape:nth-child(4) { animation-delay: -6s; }
-
-@keyframes rise {
-    from { transform: translate(-50%, 120vh) rotate(0deg); }
-    to   { transform: translate(-50%, -120vh) rotate(360deg); }
-}
-
-@keyframes fall {
-    from { transform: translate(-50%, -120vh) rotate(0deg); }
-    to   { transform: translate(-50%, 120vh) rotate(-360deg); }
-}
+/* Étoile/burst : clip-path généré en JS (var --star-clip) */
+.shape.star { clip-path: var(--star-clip); }
 
 /* ===== Responsive : mobile-first ===== */
 /* Cache les formes latérales sous 900px (mobile/tablette) */

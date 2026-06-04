@@ -11,27 +11,18 @@
 
 <body>
 
-    <!-- Formes Wrapped sur les côtés (PC uniquement) -->
-    <div class="sideShapes left">
-        <span class="shape cube"></span>
-        <span class="shape triangle"></span>
-        <span class="shape half"></span>
-        <span class="shape circle"></span>
-    </div>
-    <div class="sideShapes right">
-        <span class="shape triangle"></span>
-        <span class="shape circle"></span>
-        <span class="shape cube"></span>
-        <span class="shape half"></span>
-    </div>
+    <!-- Formes Wrapped sur les côtés (PC) — remplies par script.js -->
+    <div class="sideShapes left" data-cols="3"></div>
+    <div class="sideShapes right" data-cols="3"></div>
 
     <!-- Blobs liquides de fond -->
     <div class="blob blob1"></div>
     <div class="blob blob2"></div>
     <div class="blob blob3"></div>
 
-    <!-- Overlay transition "Mario" (couleur qui inonde l'écran) -->
+    <!-- Transition iris : disque plein puis trou transparent -->
     <div id="flood"></div>
+    <div id="cutter"></div>
 
     <!-- ===== VUE LANDING (déconnecté) ===== -->
     <section id="landing" class="view">
