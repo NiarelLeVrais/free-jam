@@ -37,22 +37,22 @@
     <section id="landing" class="view">
         <img class="logo" src="logo.png" alt="FREE JAM">
         <div id="authButtons" class="authButtons">
-            <a id="login" class="bigBtn spotify" href="/login">Se connecter avec Spotify</a>
-            <a id="joinJam" class="bigBtn jam" href="#">Se connecter à un Jam</a>
+            <a id="login" class="bigBtn spotify" href="/login" data-i18n="loginSpotify">Se connecter avec Spotify</a>
+            <a id="joinJam" class="bigBtn jam" href="#" data-i18n="joinJam">Se connecter à un Jam</a>
         </div>
     </section>
 
     <!-- ===== VUE REJOINDRE UN JAM (invité saisit le code) ===== -->
     <section id="jamView" class="view hidden">
         <img class="logo" src="logo.png" alt="FREE JAM">
-        <h2>Rejoindre un Jam</h2>
+        <h2 data-i18n="joinJamTitle">Rejoindre un Jam</h2>
         <div class="searchBar">
-            <label for="jamCode" class="srOnly">Code du Jam</label>
-            <input id="jamCode" type="text" placeholder="Code du Jam..." maxlength="5" autocomplete="off" autocapitalize="characters">
-            <button id="jamJoinBtn">Rejoindre</button>
+            <label for="jamCode" class="srOnly" data-i18n="jamCodeLabel">Code du Jam</label>
+            <input id="jamCode" type="text" placeholder="Code du Jam..." data-i18n-placeholder="jamCodePlaceholder" maxlength="5" autocomplete="off" autocapitalize="characters">
+            <button id="jamJoinBtn" data-i18n="join">Rejoindre</button>
         </div>
         <div id="jamJoinError" class="errorMsg"></div>
-        <button id="jamBack" class="bigBtn ghost">Retour</button>
+        <button id="jamBack" class="bigBtn ghost" data-i18n="back">Retour</button>
     </section>
 
     <!-- ===== VUE HOME (connecté, pas en Jam) ===== -->
@@ -65,10 +65,10 @@
                 <div id="name"></div>
                 <div id="iscon"></div>
             </div>
-            <a id="disconect" href="/disconect">Se déconecter</a>
+            <a id="disconect" href="/disconect" data-i18n="disconnect">Se déconnecter</a>
         </div>
 
-        <button id="createJamBtn" class="bigBtn jam">Créer un Jam</button>
+        <button id="createJamBtn" class="bigBtn jam" data-i18n="createJam">Créer un Jam</button>
     </section>
 
     <!-- ===== VUE SALLE JAM (host + invité) ===== -->
@@ -81,39 +81,39 @@
             <div id="jamMembers" class="jamSub"></div>
         </div>
 
-        <button id="jamInvite" class="inviteBtn">Copier le lien d'invitation</button>
+        <button id="jamInvite" class="inviteBtn" data-i18n="copyInvite">Copier le lien d'invitation</button>
 
         <!-- Contrôles : host uniquement -->
         <div class="jamControls hostOnly">
-            <button id="jamPlayPause" class="iconBtn" title="Play / Pause"></button>
-            <button id="jamSkip" class="iconBtn" title="Suivante">
+            <button id="jamPlayPause" class="iconBtn" title="Lecture / Pause" data-i18n-title="playPause"></button>
+            <button id="jamSkip" class="iconBtn" title="Suivante" data-i18n-title="next">
                 <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2.4V6H16z"/></svg>
             </button>
-            <button id="jamStop" class="stopBtn">Arrêter le Jam</button>
+            <button id="jamStop" class="stopBtn" data-i18n="stopJam">Arrêter le Jam</button>
         </div>
 
-        <h2>Lecture en cours</h2>
+        <h2 data-i18n="nowPlaying">Lecture en cours</h2>
         <div class="track" id="jamTrack">
             <div id="jamTrackName"></div>
             <img id="jamTrackImg" alt="" width="220" height="220">
         </div>
 
-        <h3>Ajouter une musique</h3>
+        <h3 data-i18n="addMusic">Ajouter une musique</h3>
         <div class="searchBar">
-            <label for="jamSearchInput" class="srOnly">Rechercher une musique</label>
-            <input id="jamSearchInput" type="text" placeholder="Titre, artiste...">
-            <button id="jamSearchBtn">Chercher</button>
+            <label for="jamSearchInput" class="srOnly" data-i18n="searchLabel">Rechercher une musique</label>
+            <input id="jamSearchInput" type="text" placeholder="Titre, artiste..." data-i18n-placeholder="searchPlaceholder">
+            <button id="jamSearchBtn" data-i18n="search">Chercher</button>
         </div>
         <div id="jamResults"></div>
 
         <div class="jamBar">
-            <h3>File d'attente</h3>
-            <button id="jamRefresh" title="Rafraîchir">↻</button>
+            <h3 data-i18n="queue">File d'attente</h3>
+            <button id="jamRefresh" title="Rafraîchir" data-i18n-title="refresh">↻</button>
         </div>
         <div id="jamQueue"></div>
 
         <!-- Quitter : invité uniquement (le host utilise Arrêter) -->
-        <button id="jamLeave" class="bigBtn ghost guestOnly">Quitter le Jam</button>
+        <button id="jamLeave" class="bigBtn ghost guestOnly" data-i18n="leaveJam">Quitter le Jam</button>
     </section>
 
     <!-- Toasts (erreurs / infos non bloquantes) -->
@@ -124,10 +124,16 @@
         <div class="confirmBox">
             <p id="confirmText"></p>
             <div class="confirmActions">
-                <button id="confirmCancel" class="bigBtn ghost">Annuler</button>
-                <button id="confirmOk" class="stopBtn">Confirmer</button>
+                <button id="confirmCancel" class="bigBtn ghost" data-i18n="cancel">Annuler</button>
+                <button id="confirmOk" class="stopBtn" data-i18n="confirm">Confirmer</button>
             </div>
         </div>
+    </div>
+
+    <!-- Bascule langue FR / EN (style Spotify, pill segmentee) -->
+    <div class="langToggle" role="group" aria-label="Langue / Language">
+        <button id="langFr" type="button" data-lang="fr">FR</button>
+        <button id="langEn" type="button" data-lang="en">EN</button>
     </div>
 
 </body>

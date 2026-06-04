@@ -1,6 +1,136 @@
 // ===== Helpers =====
 function $(id) { return document.getElementById(id) }
 
+// ===== i18n (FR / EN) =====
+const I18N = {
+    fr: {
+        loginSpotify: 'Se connecter avec Spotify',
+        joinJam: 'Se connecter à un Jam',
+        joinJamTitle: 'Rejoindre un Jam',
+        jamCodeLabel: 'Code du Jam',
+        jamCodePlaceholder: 'Code du Jam...',
+        join: 'Rejoindre',
+        back: 'Retour',
+        disconnect: 'Se déconnecter',
+        createJam: 'Créer un Jam',
+        connected: 'Connecté',
+        copyInvite: 'Copier le lien d\'invitation',
+        linkCopied: 'Lien copié !',
+        playPause: 'Lecture / Pause',
+        next: 'Suivante',
+        stopJam: 'Arrêter le Jam',
+        nowPlaying: 'Lecture en cours',
+        addMusic: 'Ajouter une musique',
+        searchLabel: 'Rechercher une musique',
+        searchPlaceholder: 'Titre, artiste...',
+        search: 'Chercher',
+        queue: 'File d\'attente',
+        refresh: 'Rafraîchir',
+        leaveJam: 'Quitter le Jam',
+        cancel: 'Annuler',
+        confirm: 'Confirmer',
+        stopConfirm: 'Arrêter le Jam pour tout le monde ?',
+        host: 'Host : {name}',
+        members: '{n} invité(s)',
+        nothingPlaying: 'Rien en lecture',
+        pauseSuffix: ' (pause)',
+        errConnectFirst: 'Connecte-toi à Spotify d\'abord',
+        errCreateJam: 'Création du Jam échouée',
+        errAdd: 'Ajout échoué (Spotify actif sur un appareil ?)',
+        errSkip: 'Skip échoué (Spotify actif sur un appareil ?)',
+        errPlayPause: 'Play/pause échoué (Spotify actif sur un appareil ?)',
+        errJamNotFound: 'Jam introuvable',
+        errJoin: 'Impossible de rejoindre',
+        errJamGone: 'Jam introuvable ou terminé',
+        copyPrompt: 'Copie ce lien :'
+    },
+    en: {
+        loginSpotify: 'Log in with Spotify',
+        joinJam: 'Join a Jam',
+        joinJamTitle: 'Join a Jam',
+        jamCodeLabel: 'Jam code',
+        jamCodePlaceholder: 'Jam code...',
+        join: 'Join',
+        back: 'Back',
+        disconnect: 'Log out',
+        createJam: 'Create a Jam',
+        connected: 'Connected',
+        copyInvite: 'Copy invite link',
+        linkCopied: 'Link copied!',
+        playPause: 'Play / Pause',
+        next: 'Next',
+        stopJam: 'Stop the Jam',
+        nowPlaying: 'Now playing',
+        addMusic: 'Add a track',
+        searchLabel: 'Search for a track',
+        searchPlaceholder: 'Title, artist...',
+        search: 'Search',
+        queue: 'Queue',
+        refresh: 'Refresh',
+        leaveJam: 'Leave the Jam',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        stopConfirm: 'Stop the Jam for everyone?',
+        host: 'Host: {name}',
+        members: '{n} guest(s)',
+        nothingPlaying: 'Nothing playing',
+        pauseSuffix: ' (paused)',
+        errConnectFirst: 'Log in with Spotify first',
+        errCreateJam: 'Failed to create Jam',
+        errAdd: 'Add failed (is Spotify active on a device?)',
+        errSkip: 'Skip failed (is Spotify active on a device?)',
+        errPlayPause: 'Play/pause failed (is Spotify active on a device?)',
+        errJamNotFound: 'Jam not found',
+        errJoin: 'Unable to join',
+        errJamGone: 'Jam not found or ended',
+        copyPrompt: 'Copy this link:'
+    }
+}
+
+let currentLang = 'fr'
+
+// Traduit une clé, avec interpolation {name} / {n}
+function t(key, params) {
+    let str = (I18N[currentLang] && I18N[currentLang][key]) || (I18N.fr[key]) || key
+    if (params) {
+        Object.keys(params).forEach(function(p) {
+            str = str.replace('{' + p + '}', params[p])
+        })
+    }
+    return str
+}
+
+// Applique les traductions à tous les éléments marqués data-i18n*
+function applyI18n() {
+    document.documentElement.lang = currentLang
+
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        el.textContent = t(el.getAttribute('data-i18n'))
+    })
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'))
+    })
+    document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+        el.title = t(el.getAttribute('data-i18n-title'))
+    })
+
+    // État visuel du toggle
+    const fr = $('langFr'), en = $('langEn')
+    if (fr && en) {
+        fr.classList.toggle('active', currentLang === 'fr')
+        en.classList.toggle('active', currentLang === 'en')
+    }
+}
+
+// Change la langue, persiste, re-rend la vue courante
+function setLang(lang) {
+    if (lang !== 'fr' && lang !== 'en') return
+    currentLang = lang
+    try { localStorage.setItem('freejamLang', lang) } catch (e) {}
+    applyI18n()
+    routeView() // re-rend les textes dynamiques (host, file, lecture) dans la nouvelle langue
+}
+
 // L'utilisateur préfère-t-il moins d'animations ?
 function prefersReducedMotion() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -84,15 +214,15 @@ async function routeView() {
 
 function fillHome(me) {
     $('name').textContent = me.name
-    $('iscon').textContent = 'Connecté'
+    $('iscon').textContent = t('connected')
     if (me.images && me.images[0]) $('profileimage').src = me.images[0].url
 }
 
 // ===== Salle Jam (host + invité) =====
 function enterJamRoom(state) {
     $('jamCodeLabel').textContent = state.code
-    $('jamHostLabel').textContent = 'Host : ' + state.hostName
-    $('jamMembers').textContent = state.members + ' invité(s)'
+    $('jamHostLabel').textContent = t('host', { name: state.hostName })
+    $('jamMembers').textContent = t('members', { n: state.members })
 
     // Affiche les éléments selon le rôle
     const host = state.role === 'host'
@@ -121,10 +251,10 @@ async function renderJamCurrent() {
         if (data.image) img.src = data.image
     } else if (data.name) {
         // En pause mais une piste est chargée
-        name.textContent = data.name + ' (pause)'
+        name.textContent = data.name + t('pauseSuffix')
         if (data.image) img.src = data.image
     } else {
-        name.textContent = 'Rien en lecture'
+        name.textContent = t('nothingPlaying')
         img.removeAttribute('src')
     }
 
@@ -184,8 +314,9 @@ async function jamSearch() {
         info.textContent = t.name + ' · ' + t.artists.join(', ')
 
         const addBtn = document.createElement('button')
-        addBtn.textContent = '+'
         addBtn.className = 'addBtn'
+        addBtn.setAttribute('aria-label', t('addMusic'))
+        addBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>'
         addBtn.addEventListener('click', function() { jamAdd(t.uri, addBtn) })
 
         row.appendChild(img)
@@ -198,14 +329,12 @@ async function jamSearch() {
 async function jamAdd(uri, btn) {
     const r = await postJSON('/jam/add', { uri })
     if (r.data.ok) {
-        btn.textContent = '✓'
         $('jamResults').innerHTML = ''
         $('jamSearchInput').value = ''
         renderJamQueue()
-        toast('Ajouté à la file', 'info')
     } else {
-        btn.textContent = '✗' // pas de device actif ?
-        toast('Ajout échoué (Spotify actif sur un appareil ?)', 'error')
+        // pas de device actif ?
+        toast(t('errAdd'), 'error')
     }
 }
 
@@ -213,10 +342,10 @@ async function jamAdd(uri, btn) {
 async function createJam(e) {
     const r = await postJSON('/jam/create')
     if (r.status === 401) {
-        toast('Connecte-toi à Spotify d\'abord', 'error')
+        toast(t('errConnectFirst'), 'error')
         return
     }
-    if (!r.data.ok) { toast('Création du Jam échouée', 'error'); return }
+    if (!r.data.ok) { toast(t('errCreateJam'), 'error'); return }
     floodTransition(paletteColor('--magenta'), e && e.clientX, e && e.clientY, routeView)
 }
 
@@ -227,8 +356,8 @@ async function joinJam() {
     if (!code) return
 
     const r = await postJSON('/jam/join', { code })
-    if (r.status === 404) { err.textContent = 'Jam introuvable'; return }
-    if (!r.data.ok) { err.textContent = 'Impossible de rejoindre'; return }
+    if (r.status === 404) { err.textContent = t('errJamNotFound'); return }
+    if (!r.data.ok) { err.textContent = t('errJoin'); return }
 
     floodTransition(paletteColor('--magenta'), null, null, routeView)
 }
@@ -240,7 +369,7 @@ async function leaveJam(e) {
 }
 
 async function stopJam(e) {
-    if (!await confirmDialog('Arrêter le Jam pour tout le monde ?')) return
+    if (!await confirmDialog(t('stopConfirm'))) return
     await postJSON('/jam/stop')
     clearInterval(jamPoll)
     floodTransition(paletteColor('--red'), e && e.clientX, e && e.clientY, routeView)
@@ -254,8 +383,8 @@ function copyInvite() {
     const btn = $('jamInvite')
 
     function done() {
-        btn.textContent = 'Lien copié !'
-        setTimeout(function() { btn.textContent = 'Copier le lien d\'invitation' }, 1800)
+        btn.textContent = t('linkCopied')
+        setTimeout(function() { btn.textContent = t('copyInvite') }, 1800)
     }
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -273,7 +402,7 @@ function fallbackCopy(text, done) {
     ta.style.opacity = '0'
     document.body.appendChild(ta)
     ta.select()
-    try { document.execCommand('copy'); done() } catch (e) { prompt('Copie ce lien :', text) }
+    try { document.execCommand('copy'); done() } catch (e) { prompt(t('copyPrompt'), text) }
     document.body.removeChild(ta)
 }
 
@@ -289,19 +418,19 @@ async function handleInviteLink() {
     // Échec → vue saisie code préremplie
     showView('jamView')
     $('jamCode').value = code.toUpperCase()
-    $('jamJoinError').textContent = 'Jam introuvable ou terminé'
+    $('jamJoinError').textContent = t('errJamGone')
     return true // on a déjà géré la vue
 }
 
 async function jamSkip() {
     const r = await postJSON('/jam/skip')
-    if (!r.data.ok) { toast('Skip échoué (Spotify actif sur un appareil ?)', 'error'); return }
+    if (!r.data.ok) { toast(t('errSkip'), 'error'); return }
     setTimeout(refreshJam, 400) // laisse Spotify changer de piste
 }
 
 async function jamPlayPause() {
     const r = await postJSON('/jam/playpause')
-    if (!r.data.ok) { toast('Play/pause échoué (Spotify actif sur un appareil ?)', 'error'); return }
+    if (!r.data.ok) { toast(t('errPlayPause'), 'error'); return }
     setPlayPauseIcon(r.data.playing)
 }
 
@@ -440,6 +569,10 @@ $('jamInvite').addEventListener('click', copyInvite)
 $('jamSearchBtn').addEventListener('click', jamSearch)
 $('jamSearchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') jamSearch() })
 
+// Bascule langue FR / EN
+$('langFr').addEventListener('click', function() { setLang('fr') })
+$('langEn').addEventListener('click', function() { setLang('en') })
+
 // Onglet caché : stoppe le polling (économie réseau). Visible : reprend si on est en salle Jam.
 document.addEventListener('visibilitychange', function() {
     const inRoom = !$('jamRoom').classList.contains('hidden')
@@ -515,6 +648,15 @@ function buildSideShapes() {
 }
 
 // ===== Démarrage =====
+// Langue initiale : localStorage, sinon langue navigateur, sinon FR
+(function initLang() {
+    let saved
+    try { saved = localStorage.getItem('freejamLang') } catch (e) {}
+    if (saved === 'fr' || saved === 'en') currentLang = saved
+    else if ((navigator.language || '').toLowerCase().slice(0, 2) === 'en') currentLang = 'en'
+    applyI18n()
+})()
+
 buildSideShapes()
 playEntranceReveal()
 ;(async function start() {
