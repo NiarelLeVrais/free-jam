@@ -196,6 +196,53 @@ async function stopJam(e) {
     floodTransition(paletteColor('--red'), e && e.clientX, e && e.clientY, routeView)
 }
 
+// Copie le lien d'invitation dans le presse-papier
+function copyInvite() {
+    const code = $('jamCodeLabel').textContent
+    if (!code) return
+    const url = location.origin + '/?jam=' + code
+    const btn = $('jamInvite')
+
+    function done() {
+        btn.textContent = 'Lien copié !'
+        setTimeout(function() { btn.textContent = 'Copier le lien d\'invitation' }, 1800)
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(function() { fallbackCopy(url, done) })
+    } else {
+        fallbackCopy(url, done)
+    }
+}
+
+// Fallback si l'API clipboard indispo (vieux navigateur / http)
+function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    try { document.execCommand('copy'); done() } catch (e) { prompt('Copie ce lien :', text) }
+    document.body.removeChild(ta)
+}
+
+// Auto-join si on arrive via un lien ?jam=CODE
+async function handleInviteLink() {
+    const code = new URLSearchParams(location.search).get('jam')
+    if (!code) return false
+
+    history.replaceState({}, '', location.pathname) // nettoie l'URL
+    const r = await postJSON('/jam/join', { code: code.toUpperCase() })
+    if (r.data.ok) return false // rejoint → routeView affichera la salle
+
+    // Échec → vue saisie code préremplie
+    showView('jamView')
+    $('jamCode').value = code.toUpperCase()
+    $('jamJoinError').textContent = 'Jam introuvable ou terminé'
+    return true // on a déjà géré la vue
+}
+
 async function jamSkip() {
     const r = await postJSON('/jam/skip')
     if (!r.data.ok) { alert('Skip échoué (device actif ?)'); return }
@@ -331,6 +378,7 @@ $('jamSkip').addEventListener('click', jamSkip)
 $('jamStop').addEventListener('click', stopJam)
 $('jamLeave').addEventListener('click', leaveJam)
 $('jamRefresh').addEventListener('click', refreshJam)
+$('jamInvite').addEventListener('click', copyInvite)
 $('jamSearchBtn').addEventListener('click', jamSearch)
 $('jamSearchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') jamSearch() })
 
@@ -387,4 +435,7 @@ function buildSideShapes() {
 // ===== Démarrage =====
 buildSideShapes()
 playEntranceReveal()
-routeView()
+;(async function start() {
+    const handled = await handleInviteLink() // lien ?jam=CODE
+    if (!handled) routeView()
+})()

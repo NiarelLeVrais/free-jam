@@ -451,6 +451,25 @@ h3 {
     color: var(--text-muted);
 }
 
+.inviteBtn {
+    padding: 10px 20px;
+    border: 1px solid var(--magenta);
+    border-radius: 500px;
+    background: transparent;
+    color: var(--magenta);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.inviteBtn:hover {
+    background: var(--magenta);
+    color: #fff;
+    transform: scale(1.04);
+}
+
 .jamControls {
     display: flex;
     align-items: center;
