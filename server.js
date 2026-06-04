@@ -101,6 +101,14 @@ app.get('/login', (req, res) => {
     res.redirect('https://accounts.spotify.com/authorize?' + params)
 })
 
+app.get('/disconect', (req, res) => {
+    spotifyToken = null
+    refreshToken = null
+    tokenExpiry = null
+    res.redirect('/')
+
+})
+
 // Démarrer le serveur
 const PORT = process.env.PORT || 4102
 app.listen(PORT, () => {

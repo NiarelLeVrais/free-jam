@@ -7,7 +7,7 @@ async function checkAuth() {
     if (data.connected) {
         document.getElementById('name').textContent = 'Name : ' + data.name
         document.getElementById('login').style.display = 'none'
-        document.getElementById('disconect').style.display = 'true'
+        document.getElementById('disconect').style.display = 'inline'
     } else {
         document.getElementById('name').textContent = 'Non connecté'
         document.getElementById('login').style.display = 'inline'
