@@ -71,5 +71,10 @@ body {
     gap: 20px;
     background-color: #181818;
     border-radius: 10px;
-    pading: 10px;
+    pading: 20px;
+    justify-content: center;
+}
+
+.track img {
+    border-radius: 5px;
 }
