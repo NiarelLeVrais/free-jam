@@ -34,6 +34,7 @@ async function getQueu() {
         nextSong.className = 'songList';
         nextSong_Name.textContent = data.queue[i].name
         nextSong_Img.src = data.queue[i].image
+        nextSong_Img.width = 80
 
         nextSong.appendChild(nextSong_Name);
         nextSong.appendChild(nextSong_Img);
