@@ -2,11 +2,17 @@ require('dotenv').config()
 const express = require('express')
 const axios = require('axios')
 const app = express()
-
+var SpotifyWebApi = require('spotify-web-api-node');
 // Config Spotify (depuis .env)
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
 const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI
+
+var spotifyApi = new SpotifyWebApi({
+    clientId: CLIENT_ID,
+    clientSecret: CLIENT_SECRET,
+    redirectUri: REDIRECT_URI
+});
 
 // Tokens stockés en mémoire (suffit pour commencer)
 let spotifyToken = null
@@ -81,7 +87,8 @@ app.get('/api/me', async(req, res) => {
         res.json({
             connected: true,
             name: resp.data.display_name,
-            id: resp.data.id
+            id: resp.data.id,
+            images: resp.data.images
         })
     } catch (err) {
         console.error('Récup profil échouée :', (err.response && err.response.data) || err.message)
