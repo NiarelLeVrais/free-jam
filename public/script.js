@@ -1,4 +1,4 @@
-function curentSongPlayed() {
+async function curentSongPlayed() {
 
     const res = await fetch('/curent')
     const data = await res.json()
