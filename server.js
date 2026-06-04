@@ -1,5 +1,6 @@
 require('dotenv').config()
 const express = require('express')
+const session = require('express-session')
 const SpotifyWebApi = require('spotify-web-api-node')
 const app = express()
 
@@ -7,12 +8,6 @@ const app = express()
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
 const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI
-
-const spotifyApi = new SpotifyWebApi({
-    clientId: CLIENT_ID,
-    clientSecret: CLIENT_SECRET,
-    redirectUri: REDIRECT_URI
-})
 
 // Scopes demandés (tableau, requis par createAuthorizeURL)
 const SCOPES = [
@@ -22,11 +17,21 @@ const SCOPES = [
     'user-read-currently-playing'
 ]
 
-// État connexion en mémoire (suffit pour commencer, mono-utilisateur)
-let tokenExpiry = null // timestamp ms d'expiration de l'access token
-
 // Permet de lire le JSON dans les requêtes
 app.use(express.json())
+
+// Sessions : chaque visiteur a son propre cookie => son propre token Spotify.
+// Si le serveur dédié est derrière HTTPS, mets cookie.secure = true + trust proxy.
+app.set('trust proxy', 1)
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'change-moi-en-prod',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+        secure: false // mets true si HTTPS
+    }
+}))
 
 // Sert les fichiers statiques du dossier public (pas de cache sur les .js)
 app.use(express.static('public', {
@@ -35,23 +40,39 @@ app.use(express.static('public', {
     }
 }))
 
-// Rafraîchit l'access token si expiré (utilise le refresh token stocké)
-async function ensureToken() {
-    if (!spotifyApi.getRefreshToken()) return false // pas connecté
-    if (tokenExpiry && Date.now() < tokenExpiry) return true // encore valide
+// Crée une instance Spotify pour CETTE session (tokens propres au visiteur)
+function makeSpotify(sess) {
+    const api = new SpotifyWebApi({
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        redirectUri: REDIRECT_URI
+    })
+    if (sess.accessToken) api.setAccessToken(sess.accessToken)
+    if (sess.refreshToken) api.setRefreshToken(sess.refreshToken)
+    return api
+}
 
-    const data = await spotifyApi.refreshAccessToken()
-    spotifyApi.setAccessToken(data.body['access_token'])
-    tokenExpiry = Date.now() + data.body['expires_in'] * 1000
-    return true
+// Renvoie une instance Spotify prête (token rafraîchi), ou null si non connecté
+async function ensureToken(sess) {
+    if (!sess.refreshToken) return null // pas connecté
+    const api = makeSpotify(sess)
+
+    if (!sess.tokenExpiry || Date.now() >= sess.tokenExpiry) {
+        const data = await api.refreshAccessToken()
+        sess.accessToken = data.body['access_token']
+        sess.tokenExpiry = Date.now() + data.body['expires_in'] * 1000
+        api.setAccessToken(sess.accessToken)
+    }
+    return api
 }
 
 // ---------- SPOTIFY ----------
 
 app.get('/login', (req, res) => {
     const state = Math.random().toString(36).slice(2)
-    const authorizeURL = spotifyApi.createAuthorizeURL(SCOPES, state)
-    res.redirect(authorizeURL)
+    req.session.state = state // anti-CSRF, vérifié au callback
+    const api = makeSpotify(req.session)
+    res.redirect(api.createAuthorizeURL(SCOPES, state))
 })
 
 app.get('/callback', async(req, res) => {
@@ -60,12 +81,16 @@ app.get('/callback', async(req, res) => {
 
     if (error) return res.status(400).send('Spotify a refusé : ' + error)
     if (!code) return res.status(400).send('Pas de code dans le callback')
+    if (req.query.state !== req.session.state) {
+        return res.status(400).send('State invalide')
+    }
 
     try {
-        const data = await spotifyApi.authorizationCodeGrant(code)
-        spotifyApi.setAccessToken(data.body['access_token'])
-        spotifyApi.setRefreshToken(data.body['refresh_token'])
-        tokenExpiry = Date.now() + data.body['expires_in'] * 1000
+        const api = makeSpotify(req.session)
+        const data = await api.authorizationCodeGrant(code)
+        req.session.accessToken = data.body['access_token']
+        req.session.refreshToken = data.body['refresh_token']
+        req.session.tokenExpiry = Date.now() + data.body['expires_in'] * 1000
         res.redirect('/')
     } catch (err) {
         console.error('Échange token échoué :', err.body || err.message)
@@ -76,10 +101,10 @@ app.get('/callback', async(req, res) => {
 // Statut connexion + profil utilisateur
 app.get('/api/me', async(req, res) => {
     try {
-        const ok = await ensureToken()
-        if (!ok) return res.json({ connected: false })
+        const api = await ensureToken(req.session)
+        if (!api) return res.json({ connected: false })
 
-        const data = await spotifyApi.getMe()
+        const data = await api.getMe()
         res.json({
             connected: true,
             name: data.body.display_name,
@@ -93,18 +118,16 @@ app.get('/api/me', async(req, res) => {
 })
 
 app.get('/disconect', (req, res) => {
-    spotifyApi.resetAccessToken()
-    spotifyApi.resetRefreshToken()
-    tokenExpiry = null
-    res.redirect('/')
+    // Détruit uniquement LA session de ce visiteur
+    req.session.destroy(() => res.redirect('/'))
 })
 
 app.get('/curent', async(req, res) => {
     try {
-        const ok = await ensureToken()
-        if (!ok) return res.json({ connected: false })
+        const api = await ensureToken(req.session)
+        if (!api) return res.json({ connected: false })
 
-        const data = await spotifyApi.getMyCurrentPlayingTrack()
+        const data = await api.getMyCurrentPlayingTrack()
 
         // Rien en lecture : Spotify renvoie un corps vide (204)
         if (!data.body || !data.body.item) {
