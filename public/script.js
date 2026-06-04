@@ -303,21 +303,21 @@ async function jamSearch() {
     box.innerHTML = ''
 
     ;
-    (data.results || []).forEach(function(t) {
+    (data.results || []).forEach(function(track) {
         const row = document.createElement('div')
         row.className = 'songList'
 
         const img = document.createElement('img')
-        if (t.image) img.src = t.image
+        if (track.image) img.src = track.image
 
         const info = document.createElement('div')
-        info.textContent = t.name + ' · ' + t.artists.join(', ')
+        info.textContent = track.name + ' · ' + track.artists.join(', ')
 
         const addBtn = document.createElement('button')
         addBtn.className = 'addBtn'
         addBtn.setAttribute('aria-label', t('addMusic'))
         addBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>'
-        addBtn.addEventListener('click', function() { jamAdd(t.uri, addBtn) })
+        addBtn.addEventListener('click', function() { jamAdd(track.uri, addBtn) })
 
         row.appendChild(img)
         row.appendChild(info)
