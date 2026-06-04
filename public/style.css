@@ -1,7 +1,14 @@
-.parent {
+body {
     display: flex;
+    flex-direction: column;
+    /* empile éléments en colonne */
     justify-content: center;
-    /* horizontal */
+    /* centre vertical */
     align-items: center;
-    /* vertical */
+    /* centre horizontal */
+    min-height: 100vh;
+    /* body prend toute hauteur écran */
+    margin: 0;
+    gap: 12px;
+    /* espace entre éléments */
 }
