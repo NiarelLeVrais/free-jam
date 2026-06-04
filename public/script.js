@@ -73,4 +73,10 @@ checkBut.addEventListener("click", function() {
     curentSongPlayed()
 })
 
+listBut = document.getElementById("listbutton")
+
+listBut.addEventListener("click", function() {
+    getQueu()
+})
+
 //NEWS
