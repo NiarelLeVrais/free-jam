@@ -12,3 +12,11 @@ body {
     gap: 12px;
     /* espace entre éléments */
 }
+
+.songList {
+    .songList {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+    }
+}

@@ -17,6 +17,31 @@ async function curentSongPlayed() {
     }
 }
 
+async function getQueu() {
+    const res = await fetch('/queue');
+    const data = await res.json();
+
+    const list = document.getElementById('file');
+
+    list.innerHTML = '' // vide avant de remplir, sinon doublons à chaque clic
+
+    for (let i = 0; i < data.queue.length; i++) {
+
+        let nextSong = document.createElement("div")
+        let nextSong_Name = document.createElement("div")
+        let nextSong_Img = document.createElement("img")
+
+        nextSong.className = 'songList';
+        nextSong_Name.textContent = data.queue[i].name
+        nextSong_Img.src = data.queue[i].image
+
+        nextSong.appendChild(nextSong_Name);
+        nextSong.appendChild(nextSong_Img);
+        list.appendChild(nextSong);
+    }
+
+}
+
 async function checkAuth() {
     const res = await fetch('/api/me')
     const data = await res.json()
@@ -39,6 +64,7 @@ async function checkAuth() {
     }
 }
 checkAuth();
+getQueu();
 
 checkBut = document.getElementById("curentbouton")
 
