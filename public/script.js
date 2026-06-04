@@ -21,6 +21,8 @@ async function getQueu() {
     const res = await fetch('/queue');
     const data = await res.json();
 
+    if (!data.queue) return; // pas connecté / rien à afficher
+
     const list = document.getElementById('file');
 
     list.innerHTML = '' // vide avant de remplir, sinon doublons à chaque clic
@@ -47,27 +49,30 @@ async function checkAuth() {
     const res = await fetch('/api/me')
     const data = await res.json()
 
-    const authButtons = document.getElementById('authButtons')
-    const disconect = document.getElementById('disconect')
+    const landing = document.getElementById('landing')
+    const appView = document.getElementById('appView')
+    const jamView = document.getElementById('jamView')
 
     if (data.connected) {
+        // Connecté → vue app
         document.getElementById('name').textContent = 'Name : ' + data.name
-        authButtons.style.display = 'none'   // cache les 2 boutons de connexion
-        disconect.style.display = 'inline'
         document.getElementById('iscon').textContent = "Conected"
         document.getElementById('profileimage').src = data.images[0].url
 
+        landing.classList.add('hidden')
+        jamView.classList.add('hidden')
+        appView.classList.remove('hidden')
+
         curentSongPlayed()
+        getQueu()
     } else {
-        document.getElementById('name').textContent = 'Non connecté'
-        authButtons.style.display = 'flex'   // montre les 2 boutons
-        disconect.style.display = 'none'
-        document.getElementById('iscon').textContent = "Disconected"
-        document.getElementById('track').style.display = 'none'
+        // Déconnecté → vue landing
+        landing.classList.remove('hidden')
+        jamView.classList.add('hidden')
+        appView.classList.add('hidden')
     }
 }
 checkAuth();
-getQueu();
 
 checkBut = document.getElementById("curentbouton")
 
@@ -79,6 +84,55 @@ listBut = document.getElementById("listbutton")
 
 listBut.addEventListener("click", function() {
     getQueu()
+})
+
+// ===== Transition Mario : la couleur inonde l'écran =====
+function floodTransition(color, onCovered) {
+    const flood = document.getElementById('flood')
+    flood.style.background = color
+    flood.classList.remove('out')
+    flood.classList.add('active')
+
+    // À mi-course l'écran est couvert → on bascule la page
+    setTimeout(function() {
+        onCovered()
+        // Puis on retire le voile pour révéler la nouvelle page
+        flood.classList.remove('active')
+        flood.classList.add('out')
+    }, 550)
+}
+
+function showView(id) {
+    ['landing', 'jamView', 'appView'].forEach(function(v) {
+        document.getElementById(v).classList.toggle('hidden', v !== id)
+    })
+}
+
+// Bouton Spotify : flood lime puis redirection OAuth
+document.getElementById('login').addEventListener('click', function(e) {
+    e.preventDefault()
+    floodTransition(getComputedStyle(document.documentElement).getPropertyValue('--lime'),
+        function() { window.location.href = '/login' })
+})
+
+// Bouton Jam : flood magenta puis vue Jam
+document.getElementById('joinJam').addEventListener('click', function(e) {
+    e.preventDefault()
+    floodTransition(getComputedStyle(document.documentElement).getPropertyValue('--magenta'),
+        function() { showView('jamView') })
+})
+
+// Retour landing depuis Jam
+document.getElementById('jamBack').addEventListener('click', function() {
+    floodTransition(getComputedStyle(document.documentElement).getPropertyValue('--blue'),
+        function() { showView('landing') })
+})
+
+// Rejoindre un Jam (stub — à câbler plus tard)
+document.getElementById('jamJoinBtn').addEventListener('click', function() {
+    const code = document.getElementById('jamCode').value.trim()
+    if (!code) return
+    alert('Jam "' + code + '" — fonctionnalité à venir')
 })
 
 // --- Recherche + ajout à la queue ---

@@ -138,47 +138,92 @@ h3 {
     object-fit: cover;
 }
 
-/* ----- Conteneur boutons de connexion ----- */
+/* ===== Vues (landing / jam / app) ===== */
+.view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+}
+
+.view.hidden {
+    display: none;
+}
+
+/* Landing + jam : centrés plein écran */
+#landing,
+#jamView {
+    min-height: 88vh;
+    justify-content: center;
+}
+
+/* ----- Gros boutons landing (empilés) ----- */
 .authButtons {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    flex-direction: column;
+    gap: 14px;
+    width: min(360px, 86vw);
 }
 
-/* ----- Liens / boutons connexion ----- */
-#login,
-#joinJam,
-#disconect {
+.bigBtn {
+    display: block;
+    text-align: center;
     text-decoration: none;
-    padding: 10px 24px;
+    padding: 18px 28px;
+    border: none;
     border-radius: 500px;
-    font-weight: 700;
-    font-size: 14px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 17px;
+    cursor: pointer;
+    transition: transform 0.12s ease;
 }
 
-#login {
+.bigBtn:hover {
+    transform: scale(1.04);
+}
+
+.bigBtn:active {
+    transform: scale(0.97);
+}
+
+.bigBtn.spotify {
     background: var(--green);
     color: #000;
 }
 
-#login:hover {
-    background: var(--green-hover);
-    transform: scale(1.04);
-}
-
-/* Jam : action phare = magenta plein */
-#joinJam {
+.bigBtn.jam {
     background: var(--magenta);
     color: #fff;
 }
 
-#joinJam:hover {
-    background: #ff47a3;
-    transform: scale(1.04);
+.bigBtn.ghost {
+    background: transparent;
+    border: 1px solid #555;
+    color: var(--text);
+    font-size: 14px;
+    padding: 12px 24px;
 }
 
-/* Déconnexion : secondaire contour */
+/* ----- Profil (vue app) ----- */
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 340px;
+}
+
+.profile>div {
+    flex: 1;
+}
+
 #disconect {
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 500px;
+    font-weight: 700;
+    font-size: 13px;
     background: transparent;
     border: 1px solid #555;
     color: var(--text);
@@ -186,7 +231,36 @@ h3 {
 
 #disconect:hover {
     border-color: var(--text);
-    transform: scale(1.04);
+}
+
+/* ===== Transition Mario (couleur inonde l'écran) ===== */
+#flood {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--magenta);
+    border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+}
+
+#flood.active {
+    animation: floodIn 0.55s ease-in forwards;
+}
+
+#flood.out {
+    animation: floodOut 0.55s ease-out forwards;
+}
+
+@keyframes floodIn {
+    0% { transform: scale(0); opacity: 1; border-radius: 50%; }
+    100% { transform: scale(3); opacity: 1; border-radius: 0; }
+}
+
+@keyframes floodOut {
+    0% { transform: scale(3); opacity: 1; border-radius: 0; }
+    100% { transform: scale(3); opacity: 0; border-radius: 0; }
 }
 
 /* ----- Barre de boutons ----- */
@@ -351,4 +425,98 @@ h3 {
 .addBtn:hover {
     background: var(--green-hover);
     transform: scale(1.1);
+}
+
+/* ===== Formes Wrapped sur les côtés (PC) ===== */
+.sideShapes {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 160px;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.sideShapes.left {
+    left: 0;
+}
+
+.sideShapes.right {
+    right: 0;
+}
+
+.shape {
+    position: absolute;
+    left: 50%;
+    width: 64px;
+    height: 64px;
+    opacity: 0.9;
+    will-change: transform;
+}
+
+/* Formes géométriques */
+.shape.cube {
+    background: var(--blue);
+    border-radius: 8px;
+}
+
+.shape.circle {
+    background: var(--magenta);
+    border-radius: 50%;
+}
+
+.shape.half {
+    background: var(--lime);
+    border-radius: 64px 64px 0 0;
+    height: 32px;
+}
+
+.shape.triangle {
+    width: 0;
+    height: 0;
+    background: transparent;
+    border-left: 32px solid transparent;
+    border-right: 32px solid transparent;
+    border-bottom: 56px solid var(--red);
+}
+
+/* Répartition verticale + directions alternées */
+.sideShapes .shape:nth-child(1) { top: 10%; animation: rise 13s linear infinite; }
+.sideShapes .shape:nth-child(2) { top: 35%; animation: fall 16s linear infinite; }
+.sideShapes .shape:nth-child(3) { top: 60%; animation: rise 18s linear infinite; }
+.sideShapes .shape:nth-child(4) { top: 80%; animation: fall 15s linear infinite; }
+
+/* Décalage côté droit pour désynchroniser */
+.sideShapes.right .shape:nth-child(1) { animation-delay: -4s; }
+.sideShapes.right .shape:nth-child(2) { animation-delay: -8s; }
+.sideShapes.right .shape:nth-child(3) { animation-delay: -2s; }
+.sideShapes.right .shape:nth-child(4) { animation-delay: -6s; }
+
+@keyframes rise {
+    from { transform: translate(-50%, 120vh) rotate(0deg); }
+    to   { transform: translate(-50%, -120vh) rotate(360deg); }
+}
+
+@keyframes fall {
+    from { transform: translate(-50%, -120vh) rotate(0deg); }
+    to   { transform: translate(-50%, 120vh) rotate(-360deg); }
+}
+
+/* ===== Responsive : mobile-first ===== */
+/* Cache les formes latérales sous 900px (mobile/tablette) */
+@media (max-width: 900px) {
+    .sideShapes { display: none; }
+}
+
+/* Largeurs fluides sur petit écran */
+@media (max-width: 420px) {
+    h2, h3,
+    #track, #file, #searchResults,
+    .searchBar, .profile {
+        width: 100%;
+        max-width: 340px;
+    }
+
+    .logo { width: 78vw; }
 }
