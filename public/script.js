@@ -33,6 +33,10 @@ async function checkAuth() {
 }
 checkAuth();
 
+checkBut = document.getElementById("curentbouton")
 
+checkBut.addEventListener("click", function() {
+    curentSongPlayed()
+})
 
 //NEWS
