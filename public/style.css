@@ -217,7 +217,7 @@ h3 {
 
 #flood.active {
     opacity: 1;
-    animation: floodIn 0.5s ease-out forwards;
+    animation: floodIn 0.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
 }
 
 @keyframes floodIn {
@@ -237,7 +237,7 @@ h3 {
 
 #cutter.active {
     opacity: 1;
-    animation: cutOpen 0.5s ease-in forwards;
+    animation: cutOpen 0.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
 }
 
 @keyframes cutOpen {
@@ -308,6 +308,31 @@ h3 {
     flex-direction: column;
     gap: 6px;
     width: 340px;
+}
+
+/* File + résultats = liste scrollable bornée (pas toute la page) */
+#jamQueue,
+#jamResults {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Scrollbar discrète façon Spotify */
+#jamQueue::-webkit-scrollbar,
+#jamResults::-webkit-scrollbar {
+    width: 8px;
+}
+
+#jamQueue::-webkit-scrollbar-thumb,
+#jamResults::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 8px;
+}
+
+#jamQueue::-webkit-scrollbar-thumb:hover,
+#jamResults::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .songList {
@@ -436,6 +461,9 @@ h3 {
 }
 
 .jamControls button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     border-radius: 500px;
     background: var(--bg-elev);
@@ -451,23 +479,29 @@ h3 {
     transform: scale(1.05);
 }
 
-/* Ronds play/pause + skip */
-#jamPlayPause,
-#jamSkip {
-    width: 52px;
-    height: 52px;
-    font-size: 20px;
+/* Ronds play/pause + skip (icônes SVG centrées) */
+.iconBtn {
+    width: 54px;
+    height: 54px;
+    padding: 0;
     background: var(--lime);
     color: #000;
 }
 
-#jamPlayPause:hover,
-#jamSkip:hover {
+.iconBtn:hover {
     background: var(--green-hover);
 }
 
+.iconBtn svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+    display: block;
+}
+
 .stopBtn {
-    padding: 12px 20px;
+    padding: 0 20px;
+    height: 54px;
     background: var(--red) !important;
     color: #fff;
 }

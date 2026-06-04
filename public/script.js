@@ -35,7 +35,7 @@ async function routeView() {
 }
 
 function fillHome(me) {
-    $('name').textContent = 'Name : ' + me.name
+    $('name').textContent = me.name
     $('iscon').textContent = 'Connecté'
     if (me.images && me.images[0]) $('profileimage').src = me.images[0].url
 }
@@ -81,8 +81,16 @@ async function renderJamCurrent() {
     }
 
     // Icône play/pause du host reflète l'état
+    setPlayPauseIcon(data.playing)
+}
+
+// Icônes SVG centrées (pas d'emoji qui rend mal)
+const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>'
+
+function setPlayPauseIcon(playing) {
     const pp = $('jamPlayPause')
-    if (pp) pp.textContent = data.playing ? '⏸' : '▶'
+    if (pp) pp.innerHTML = playing ? ICON_PAUSE : ICON_PLAY
 }
 
 async function renderJamQueue() {
@@ -116,7 +124,8 @@ async function jamSearch() {
     const box = $('jamResults')
     box.innerHTML = ''
 
-    ;(data.results || []).forEach(function(t) {
+    ;
+    (data.results || []).forEach(function(t) {
         const row = document.createElement('div')
         row.className = 'songList'
 
@@ -196,7 +205,7 @@ async function jamSkip() {
 async function jamPlayPause() {
     const r = await postJSON('/jam/playpause')
     if (!r.data.ok) { alert('Play/pause échoué (device actif ?)'); return }
-    $('jamPlayPause').textContent = r.data.playing ? '⏸' : '▶'
+    setPlayPauseIcon(r.data.playing)
 }
 
 // ===== Transition iris : disque plein puis trou transparent =====
@@ -284,7 +293,8 @@ function playEntranceReveal() {
 // ===== Vues =====
 function showView(id) {
     clearInterval(jamPoll) // stoppe le polling en quittant la salle Jam
-    ;['landing', 'jamView', 'appView', 'jamRoom'].forEach(function(v) {
+    ;
+    ['landing', 'jamView', 'appView', 'jamRoom'].forEach(function(v) {
         $(v).classList.toggle('hidden', v !== id)
     })
     buildSideShapes() // formes neuves à chaque page
