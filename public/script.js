@@ -110,18 +110,21 @@ function floodTransition(color, x, y, onCovered) {
     flood.classList.add('active')
 
     setTimeout(function() {
-        onCovered() // bascule la page pile quand l'écran est couvert
+        onCovered() // bascule la page pile quand l'écran est couvert (couleur pleine)
 
-        // Phase 2 : trou transparent découpe la couleur → révèle la page
-        cutter.classList.add('active') // démarre plein (trou = 0), même couleur
-        flood.classList.remove('active')
-        flood.style.opacity = 0 // cache le disque, le cutter prend le relais
-
+        // HOLD : on garde l'écran tout coloré un instant pendant le changement
         setTimeout(function() {
-            cutter.classList.remove('active')
-            cutter.style.opacity = 0
-        }, 400)
-    }, 400)
+            // Phase 2 : trou transparent découpe la couleur → révèle la page
+            cutter.classList.add('active') // démarre plein (trou = 0), même couleur
+            flood.classList.remove('active')
+            flood.style.opacity = 0 // cache le disque, le cutter prend le relais
+
+            setTimeout(function() {
+                cutter.classList.remove('active')
+                cutter.style.opacity = 0
+            }, 500)
+        }, 260) // durée du maintien couleur
+    }, 500)
 }
 
 // Récupère une couleur de la palette CSS
@@ -163,7 +166,7 @@ document.getElementById('jamJoinBtn').addEventListener('click', function() {
 })
 
 // ===== Colonnes de formes Wrapped (côtés PC) =====
-(function buildSideShapes() {
+;(function buildSideShapes() {
     const SHAPES = ['sq', 'circle', 'half', 'triUp', 'triDown', 'diamond', 'pent', 'chevron', 'peanut', 'star']
     const COLORS = ['#f0524a', '#ff8ad8', '#ffa64d', '#6f6cf0', '#6fae6f', '#ff3d9a']
 

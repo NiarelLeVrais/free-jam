@@ -57,56 +57,6 @@ body {
     margin-bottom: 8px;
 }
 
-/* ----- Formes liquides de fond ----- */
-.blob {
-    position: fixed;
-    z-index: -1;
-    border-radius: 50%;
-    filter: blur(90px);
-    opacity: 0.55;
-    pointer-events: none;
-    will-change: transform;
-}
-
-.blob1 {
-    width: 380px;
-    height: 380px;
-    background: var(--magenta);
-    top: -80px;
-    left: -100px;
-    animation: float1 14s ease-in-out infinite;
-}
-
-.blob2 {
-    width: 320px;
-    height: 320px;
-    background: var(--blue);
-    top: 30%;
-    right: -120px;
-    animation: float2 18s ease-in-out infinite;
-}
-
-.blob3 {
-    width: 300px;
-    height: 300px;
-    background: var(--lime);
-    bottom: -100px;
-    left: 20%;
-    animation: float3 16s ease-in-out infinite;
-}
-
-@keyframes float1 {
-    50% { transform: translate(60px, 40px) scale(1.15); }
-}
-
-@keyframes float2 {
-    50% { transform: translate(-50px, 30px) scale(1.1); }
-}
-
-@keyframes float3 {
-    50% { transform: translate(40px, -50px) scale(1.2); }
-}
-
 /* ----- Titres ----- */
 h1 {
     margin: 0;
@@ -267,7 +217,7 @@ h3 {
 
 #flood.active {
     opacity: 1;
-    animation: floodIn 0.4s ease-in forwards;
+    animation: floodIn 0.5s ease-out forwards;
 }
 
 @keyframes floodIn {
@@ -287,7 +237,7 @@ h3 {
 
 #cutter.active {
     opacity: 1;
-    animation: cutOpen 0.4s ease-out forwards;
+    animation: cutOpen 0.5s ease-in forwards;
 }
 
 @keyframes cutOpen {
