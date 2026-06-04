@@ -72,6 +72,7 @@ async function checkAuth() {
         appView.classList.add('hidden')
     }
 }
+playEntranceReveal(); // découvre la page si on arrive d'une transition de navigation
 checkAuth();
 
 checkBut = document.getElementById("curentbouton")
@@ -138,6 +139,44 @@ function paletteColor(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
+// Transition pour une VRAIE navigation (changement d'URL).
+// On couvre l'écran de couleur, on mémorise, puis on navigue.
+// Le reveal sera rejoué au chargement de la nouvelle page → la transition enjambe la navigation.
+function floodNavigate(color, x, y, url) {
+    const flood = document.getElementById('flood')
+    if (x == null) x = window.innerWidth / 2
+    if (y == null) y = window.innerHeight / 2
+
+    flood.style.left = x + 'px'
+    flood.style.top = y + 'px'
+    flood.style.background = color
+
+    flood.classList.remove('active')
+    void flood.offsetWidth
+    flood.classList.add('active')
+
+    sessionStorage.setItem('freejamReveal', color) // mémorise pour la page suivante
+    setTimeout(function() { window.location.href = url }, 520)
+}
+
+// Au chargement : si on vient d'une navigation avec transition, on découvre la page.
+function playEntranceReveal() {
+    const color = sessionStorage.getItem('freejamReveal')
+    if (!color) return
+    sessionStorage.removeItem('freejamReveal')
+
+    const cutter = document.getElementById('cutter')
+    cutter.style.left = '50%'
+    cutter.style.top = '50%'
+    cutter.style.boxShadow = '0 0 0 300vmax ' + color
+    cutter.classList.add('active') // écran plein couleur → trou s'ouvre → page révélée
+
+    setTimeout(function() {
+        cutter.classList.remove('active')
+        cutter.style.opacity = 0
+    }, 520)
+}
+
 function showView(id) {
     ['landing', 'jamView', 'appView'].forEach(function(v) {
         document.getElementById(v).classList.toggle('hidden', v !== id)
@@ -145,11 +184,10 @@ function showView(id) {
     buildSideShapes() // formes neuves à chaque page
 }
 
-// Bouton Spotify : flood lime puis redirection OAuth
+// Bouton Spotify : couvre puis navigue (reveal rejoué au retour)
 document.getElementById('login').addEventListener('click', function(e) {
     e.preventDefault()
-    floodTransition(paletteColor('--lime'), e.clientX, e.clientY,
-        function() { window.location.href = '/login' })
+    floodNavigate(paletteColor('--lime'), e.clientX, e.clientY, '/login')
 })
 
 // Bouton Jam : flood magenta puis vue Jam
