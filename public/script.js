@@ -1,6 +1,54 @@
 // ===== Helpers =====
 function $(id) { return document.getElementById(id) }
 
+// L'utilisateur préfère-t-il moins d'animations ?
+function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+// Toast non bloquant (remplace alert)
+function toast(message, type) {
+    const box = $('toasts')
+    if (!box) { return }
+    const el = document.createElement('div')
+    el.className = 'toast' + (type ? ' ' + type : '')
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status')
+    el.textContent = message
+    box.appendChild(el)
+
+    setTimeout(function() {
+        el.classList.add('out')
+        setTimeout(function() { el.remove() }, 250)
+    }, 3200)
+}
+
+// Confirm custom (remplace confirm() natif bloquant) → renvoie une Promise<boolean>
+function confirmDialog(message) {
+    return new Promise(function(resolve) {
+        const overlay = $('confirmOverlay')
+        $('confirmText').textContent = message
+        overlay.classList.remove('hidden')
+
+        function cleanup(result) {
+            overlay.classList.add('hidden')
+            $('confirmOk').removeEventListener('click', onOk)
+            $('confirmCancel').removeEventListener('click', onCancel)
+            overlay.removeEventListener('click', onBackdrop)
+            document.removeEventListener('keydown', onKey)
+            resolve(result)
+        }
+        function onOk() { cleanup(true) }
+        function onCancel() { cleanup(false) }
+        function onBackdrop(e) { if (e.target === overlay) cleanup(false) }
+        function onKey(e) { if (e.key === 'Escape') cleanup(false) }
+
+        $('confirmOk').addEventListener('click', onOk)
+        $('confirmCancel').addEventListener('click', onCancel)
+        overlay.addEventListener('click', onBackdrop)
+        document.addEventListener('keydown', onKey)
+    })
+}
+
 async function getJSON(url) {
     const res = await fetch(url)
     return res.json()
@@ -69,7 +117,7 @@ async function renderJamCurrent() {
     const img = $('jamTrackImg')
 
     if (data.playing && data.name) {
-        name.textContent = data.name + ' — ' + (data.artists || []).join(', ')
+        name.textContent = data.name + ' · ' + (data.artists || []).join(', ')
         if (data.image) img.src = data.image
     } else if (data.name) {
         // En pause mais une piste est chargée
@@ -107,7 +155,7 @@ async function renderJamQueue() {
         if (track.image) img.src = track.image
 
         const info = document.createElement('div')
-        info.textContent = track.name + ' — ' + (track.artists || []).join(', ')
+        info.textContent = track.name + ' · ' + (track.artists || []).join(', ')
 
         row.appendChild(img)
         row.appendChild(info)
@@ -133,7 +181,7 @@ async function jamSearch() {
         if (t.image) img.src = t.image
 
         const info = document.createElement('div')
-        info.textContent = t.name + ' — ' + t.artists.join(', ')
+        info.textContent = t.name + ' · ' + t.artists.join(', ')
 
         const addBtn = document.createElement('button')
         addBtn.textContent = '+'
@@ -154,8 +202,10 @@ async function jamAdd(uri, btn) {
         $('jamResults').innerHTML = ''
         $('jamSearchInput').value = ''
         renderJamQueue()
+        toast('Ajouté à la file', 'info')
     } else {
         btn.textContent = '✗' // pas de device actif ?
+        toast('Ajout échoué (Spotify actif sur un appareil ?)', 'error')
     }
 }
 
@@ -163,10 +213,10 @@ async function jamAdd(uri, btn) {
 async function createJam(e) {
     const r = await postJSON('/jam/create')
     if (r.status === 401) {
-        alert('Connecte-toi à Spotify d\'abord')
+        toast('Connecte-toi à Spotify d\'abord', 'error')
         return
     }
-    if (!r.data.ok) { alert('Création du Jam échouée'); return }
+    if (!r.data.ok) { toast('Création du Jam échouée', 'error'); return }
     floodTransition(paletteColor('--magenta'), e && e.clientX, e && e.clientY, routeView)
 }
 
@@ -190,7 +240,7 @@ async function leaveJam(e) {
 }
 
 async function stopJam(e) {
-    if (!confirm('Arrêter le Jam pour tout le monde ?')) return
+    if (!await confirmDialog('Arrêter le Jam pour tout le monde ?')) return
     await postJSON('/jam/stop')
     clearInterval(jamPoll)
     floodTransition(paletteColor('--red'), e && e.clientX, e && e.clientY, routeView)
@@ -245,18 +295,21 @@ async function handleInviteLink() {
 
 async function jamSkip() {
     const r = await postJSON('/jam/skip')
-    if (!r.data.ok) { alert('Skip échoué (device actif ?)'); return }
+    if (!r.data.ok) { toast('Skip échoué (Spotify actif sur un appareil ?)', 'error'); return }
     setTimeout(refreshJam, 400) // laisse Spotify changer de piste
 }
 
 async function jamPlayPause() {
     const r = await postJSON('/jam/playpause')
-    if (!r.data.ok) { alert('Play/pause échoué (device actif ?)'); return }
+    if (!r.data.ok) { toast('Play/pause échoué (Spotify actif sur un appareil ?)', 'error'); return }
     setPlayPauseIcon(r.data.playing)
 }
 
 // ===== Transition iris : disque plein puis trou transparent =====
 function floodTransition(color, x, y, onCovered) {
+    // Reduced motion : bascule la vue sans animation iris
+    if (prefersReducedMotion()) { onCovered(); return }
+
     const flood = $('flood')
     const cutter = $('cutter')
 
@@ -303,6 +356,9 @@ function paletteColor(name) {
 
 // Transition pour une vraie navigation (changement d'URL)
 function floodNavigate(color, x, y, url) {
+    // Reduced motion : navigue directement sans animation iris
+    if (prefersReducedMotion()) { window.location.href = url; return }
+
     const flood = $('flood')
     if (x == null) x = window.innerWidth / 2
     if (y == null) y = window.innerHeight / 2
@@ -325,6 +381,8 @@ function playEntranceReveal() {
     if (!color) return
     sessionStorage.removeItem('freejamReveal')
 
+    if (prefersReducedMotion()) return // pas de reveal animé
+
     const cutter = $('cutter')
     cutter.style.left = '50%'
     cutter.style.top = '50%'
@@ -344,7 +402,7 @@ function showView(id) {
     ['landing', 'jamView', 'appView', 'jamRoom'].forEach(function(v) {
         $(v).classList.toggle('hidden', v !== id)
     })
-    buildSideShapes() // formes neuves à chaque page
+    // formes de fond construites une seule fois au démarrage (pas à chaque vue)
 }
 
 // ===== Listeners =====
@@ -381,6 +439,18 @@ $('jamRefresh').addEventListener('click', refreshJam)
 $('jamInvite').addEventListener('click', copyInvite)
 $('jamSearchBtn').addEventListener('click', jamSearch)
 $('jamSearchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') jamSearch() })
+
+// Onglet caché : stoppe le polling (économie réseau). Visible : reprend si on est en salle Jam.
+document.addEventListener('visibilitychange', function() {
+    const inRoom = !$('jamRoom').classList.contains('hidden')
+    if (document.hidden) {
+        clearInterval(jamPoll)
+    } else if (inRoom) {
+        refreshJam()
+        clearInterval(jamPoll)
+        jamPoll = setInterval(refreshJam, 6000)
+    }
+})
 
 // ===== Colonnes de formes Wrapped (côtés PC) =====
 function buildSideShapes() {

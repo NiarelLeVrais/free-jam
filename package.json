@@ -1,7 +1,7 @@
 {
   "name": "freejam",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000f\u0000r\u0000e\u0000e\u0000-\u0000j\u0000a\u0000m\u0000\r\u0000 \u0000",
+  "description": "Crée un Jam Spotify et écoute en groupe : l'hôte contrôle la lecture, les invités ajoutent des musiques à la file.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
