@@ -110,7 +110,7 @@ function floodTransition(color, x, y, onCovered) {
     flood.classList.add('active')
 
     setTimeout(function() {
-        onCovered() // bascule la page sous le voile (écran tout coloré)
+        onCovered() // bascule la page pile quand l'écran est couvert
 
         // Phase 2 : trou transparent découpe la couleur → révèle la page
         cutter.classList.add('active') // démarre plein (trou = 0), même couleur
@@ -120,8 +120,8 @@ function floodTransition(color, x, y, onCovered) {
         setTimeout(function() {
             cutter.classList.remove('active')
             cutter.style.opacity = 0
-        }, 500)
-    }, 500)
+        }, 400)
+    }, 400)
 }
 
 // Récupère une couleur de la palette CSS

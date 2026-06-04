@@ -24,6 +24,11 @@
     box-sizing: border-box;
 }
 
+/* Fond sur html → les formes/blobs en z-index négatif restent visibles */
+html {
+    background: var(--bg);
+}
+
 body {
     position: relative;
     display: flex;
@@ -33,10 +38,16 @@ body {
     margin: 0;
     padding: 32px 16px 64px;
     gap: 18px;
-    background: var(--bg);
+    background: transparent;
     color: var(--text);
     font-family: 'Montserrat', system-ui, sans-serif;
     overflow-x: hidden;
+}
+
+/* Contenu au-dessus des formes de fond */
+.view {
+    position: relative;
+    z-index: 1;
 }
 
 /* ----- Logo ----- */
@@ -256,7 +267,7 @@ h3 {
 
 #flood.active {
     opacity: 1;
-    animation: floodIn 0.5s ease-in forwards;
+    animation: floodIn 0.4s ease-in forwards;
 }
 
 @keyframes floodIn {
@@ -276,7 +287,7 @@ h3 {
 
 #cutter.active {
     opacity: 1;
-    animation: cutOpen 0.5s ease-out forwards;
+    animation: cutOpen 0.4s ease-out forwards;
 }
 
 @keyframes cutOpen {
