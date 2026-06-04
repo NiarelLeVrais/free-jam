@@ -14,9 +14,7 @@ body {
 }
 
 .songList {
-    .songList {
-        display: flex;
-        flex-direction: row;
-        gap: 12px;
-    }
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
 }
