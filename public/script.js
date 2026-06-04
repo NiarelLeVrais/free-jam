@@ -9,7 +9,7 @@ async function checkAuth() {
         document.getElementById('login').style.display = 'none'
         document.getElementById('disconect').style.display = 'inline'
         document.getElementById('iscon').textContent = "Conected"
-        document.getElementById('profileimage').src = (data.images && data.images[0]) ? data.images[0].url : ''
+        document.getElementById('profileimage').src = data.images[0].url
     } else {
         document.getElementById('name').textContent = 'Non connecté'
         document.getElementById('login').style.display = 'inline'
