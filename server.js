@@ -75,8 +75,32 @@ function ensureToken(sess) {
 }
 
 // ---------- JAM ----------
-// Store en mémoire : code -> { hostName, tokens du host, members, ... }
+// Store en mémoire : code -> { hostId, hostName, tokens du host, members, createdAt }
 const jams = new Map()
+
+// Durée de vie d'un Jam non stoppé : 3 heures
+const JAM_MAX_AGE = 3 * 60 * 60 * 1000
+
+// Un Jam est expiré s'il a plus de 3h
+function isExpired(jam) {
+    return Date.now() - jam.createdAt > JAM_MAX_AGE
+}
+
+// Cherche un Jam encore valide créé par ce compte Spotify (réattache après reconnexion)
+function findJamByHost(spotifyId) {
+    for (const jam of jams.values()) {
+        if (isExpired(jam)) { jams.delete(jam.code); continue }
+        if (jam.hostId === spotifyId) return jam
+    }
+    return null
+}
+
+// Nettoyage périodique des Jams expirés (libère la mémoire)
+setInterval(function() {
+    for (const jam of jams.values()) {
+        if (isExpired(jam)) jams.delete(jam.code)
+    }
+}, 30 * 60 * 1000)
 
 // Génère un code court unique (sans caractères ambigus)
 function makeJamCode() {
@@ -88,10 +112,13 @@ function makeJamCode() {
     return code
 }
 
-// Récupère le jam lié à la session (ou null si stoppé/absent)
+// Récupère le jam lié à la session (ou null si stoppé/absent/expiré)
 function getJam(sess) {
     if (!sess.jam || !sess.jam.code) return null
-    return jams.get(sess.jam.code) || null
+    const jam = jams.get(sess.jam.code)
+    if (!jam) return null
+    if (isExpired(jam)) { jams.delete(jam.code); return null }
+    return jam
 }
 
 function isHost(sess) {
@@ -283,6 +310,7 @@ app.post('/jam/create', async(req, res) => {
         const code = makeJamCode()
         jams.set(code, {
             code,
+            hostId: me.body.id, // identifie le host par son compte Spotify
             hostName: me.body.display_name,
             // Copie des tokens du host : les invités jouent sur SON Spotify
             accessToken: req.session.accessToken,
@@ -327,16 +355,38 @@ app.post('/jam/stop', (req, res) => {
 })
 
 // État du Jam pour cette session → le front choisit la vue
-app.get('/jam/state', (req, res) => {
+app.get('/jam/state', async(req, res) => {
     const sj = req.session.jam
-    if (!sj) return res.json({ inJam: false })
 
-    const jam = jams.get(sj.code)
-    if (!jam) {
-        req.session.jam = null // le Jam a été stoppé
-        return res.json({ inJam: false, ended: true })
+    if (sj) {
+        const jam = getJam(req.session)
+        if (!jam) {
+            req.session.jam = null // Jam stoppé ou expiré
+            return res.json({ inJam: false, ended: true })
+        }
+        return res.json({ inJam: true, code: jam.code, role: sj.role, hostName: jam.hostName, members: jam.members })
     }
-    res.json({ inJam: true, code: jam.code, role: sj.role, hostName: jam.hostName, members: jam.members })
+
+    // Pas de Jam en session : si connecté à Spotify, on réattache un Jam <3h créé par ce compte
+    if (req.session.refreshToken) {
+        try {
+            const api = await ensureToken(req.session)
+            const me = await api.getMe()
+            const jam = findJamByHost(me.body.id)
+            if (jam) {
+                // Rafraîchit les tokens du Jam avec ceux du host reconnecté
+                jam.accessToken = req.session.accessToken
+                jam.refreshToken = req.session.refreshToken
+                jam.tokenExpiry = req.session.tokenExpiry
+                req.session.jam = { code: jam.code, role: 'host' }
+                return res.json({ inJam: true, code: jam.code, role: 'host', hostName: jam.hostName, members: jam.members, restored: true })
+            }
+        } catch (err) {
+            console.error('Réattache Jam échouée :', err.body || err.message)
+        }
+    }
+
+    res.json({ inJam: false })
 })
 
 // Lecture en cours du Jam (token host)
